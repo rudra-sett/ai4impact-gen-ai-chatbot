@@ -6,12 +6,15 @@ import { Construct } from "constructs";
 import { kendraIndexName } from "../../constants"
 
 export interface KendraIndexStackProps {
-  s3Bucket: s3.Bucket
+  s3Bucket: s3.Bucket,
+  zendeskBucket: s3.Bucket
 }
 
 export class KendraIndexStack extends cdk.Stack {
   public readonly kendraIndex : kendra.CfnIndex;
   public readonly kendraSource : kendra.CfnDataSource;
+  public readonly zendeskSource : kendra.CfnDataSource;
+
   constructor(scope: Construct, id: string, props: KendraIndexStackProps) {
     super(scope, id);
 
@@ -101,7 +104,6 @@ export class KendraIndexStack extends cdk.Stack {
       })
     );
 
-
     // Use the provided S3 bucket for the data source and FAQ
     const dataSource = new kendra.CfnDataSource(scope, 'KendraS3DataSource', {
       indexId: index.attrId,
@@ -115,6 +117,43 @@ export class KendraIndexStack extends cdk.Stack {
       }
     });
 
+
+    const zendeskDataSourceRole = new iam.Role(scope, 'ZendeskDataSourceRole', {
+      assumedBy: new iam.ServicePrincipal('kendra.amazonaws.com'),
+    });
+
+    zendeskDataSourceRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['s3:GetObject', 's3:ListBucket'],
+        resources: [
+          `arn:aws:s3:::${props.zendeskBucket.bucketName}`,
+          `arn:aws:s3:::${props.zendeskBucket.bucketName}/*`,
+        ],
+      })
+    );
+
+    zendeskDataSourceRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ["kendra:BatchPutDocument", "kendra:BatchDeleteDocument"],
+        resources: [
+          index.attrArn
+        ],
+      })
+    );
+
+    const zendeskSource = new kendra.CfnDataSource(scope, 'ZendeskS3DataSource', {
+      indexId: index.attrId,
+      name: 'zendesk-source',
+      type: 'S3',
+      roleArn : zendeskDataSourceRole.roleArn,
+      dataSourceConfiguration: {
+        s3Configuration: {
+          bucketName: props.zendeskBucket.bucketName,
+        },
+      }
+    });
+
+    this.zendeskSource = zendeskSource;
     this.kendraIndex = index;
     this.kendraSource = dataSource;
   }

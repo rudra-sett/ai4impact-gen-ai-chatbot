@@ -41,7 +41,7 @@ export class ChatBotApi extends Construct {
 
     const tables = new TableStack(this, "TableStack");
     const buckets = new S3BucketStack(this, "BucketStack");
-    const kendra = new KendraIndexStack(this, "KendraStack", { s3Bucket: buckets.kendraBucket });
+    const kendra = new KendraIndexStack(this, "KendraStack", { s3Bucket: buckets.kendraBucket, zendeskBucket : buckets.zendeskBucket });
 
     const restBackend = new RestBackendAPI(this, "RestBackend", {})
     this.httpAPI = restBackend;
@@ -56,7 +56,8 @@ export class ChatBotApi extends Construct {
         kendraSource: kendra.kendraSource,
         feedbackTable: tables.feedbackTable,
         feedbackBucket: buckets.feedbackBucket,
-        knowledgeBucket: buckets.kendraBucket
+        knowledgeBucket: buckets.kendraBucket,
+        zendeskBucket: buckets.zendeskBucket
       })
 
     const wsAuthorizer = new WebSocketLambdaAuthorizer('WebSocketAuthorizer', props.authentication.lambdaAuthorizer, {identitySource: ['route.request.querystring.Authorization']});

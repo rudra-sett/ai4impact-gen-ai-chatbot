@@ -17,6 +17,7 @@ interface LambdaFunctionStackProps {
   readonly feedbackTable : Table;
   readonly feedbackBucket : s3.Bucket;
   readonly knowledgeBucket : s3.Bucket;
+  readonly zendeskBucket : s3.Bucket;
 }
 
 export class LambdaFunctionStack extends cdk.Stack {  
@@ -27,6 +28,7 @@ export class LambdaFunctionStack extends cdk.Stack {
   public readonly getS3Function : lambda.Function;
   public readonly uploadS3Function : lambda.Function;
   public readonly syncKendraFunction : lambda.Function;
+  public readonly zendeskSyncFunction : lambda.Function;
 
   constructor(scope: Construct, id: string, props: LambdaFunctionStackProps) {
     super(scope, id);    
@@ -205,5 +207,27 @@ export class LambdaFunctionStack extends cdk.Stack {
     }));
     this.uploadS3Function = uploadS3APIHandlerFunction;
 
+
+    const saveZendeskArticlesHandlerFunction = new lambda.Function(scope, 'SaveZendeskArticlesHandlerFunction', {
+      runtime: lambda.Runtime.PYTHON_3_12, // Choose any supported Node.js runtime
+      code: lambda.Code.fromAsset(path.join(__dirname, 'zendesk-crawler')), // Points to the lambda directory
+      handler: 'index.handler', // Points to the 'hello' file in the lambda directory
+      environment: {
+        "ARTICLE_BUCKET" : props.knowledgeBucket.bucketName,    
+        "USERNAME" : "PLACEHOLDER",
+        "PASSWORD" : "PLACEHOLDER",
+        "HELP_CENTER_ENDPOINT" : "PLACEHOLDER"    
+      },
+      timeout: cdk.Duration.seconds(180)
+    });
+
+    saveZendeskArticlesHandlerFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        's3:*'
+      ],
+      resources: [props.zendeskBucket.bucketArn,props.zendeskBucket.bucketArn+"/*"]
+    }));
+    this.zendeskSyncFunction = saveZendeskArticlesHandlerFunction;
   }
 }
