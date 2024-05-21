@@ -223,7 +223,7 @@ export class LambdaFunctionStack extends cdk.Stack {
     ), // Points to the lambda directory
       handler: 'lambda_function.lambda_handler', // Points to the 'hello' file in the lambda directory
       environment: {
-        "ARTICLE_BUCKET" : props.knowledgeBucket.bucketName,    
+        "ARTICLE_BUCKET" : props.zendeskBucket.bucketName,    
         "USERNAME" : "PLACEHOLDER",
         "PASSWORD" : "PLACEHOLDER",
         "HELP_CENTER_ENDPOINT" : "PLACEHOLDER"    
