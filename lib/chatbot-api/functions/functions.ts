@@ -210,15 +210,17 @@ export class LambdaFunctionStack extends cdk.Stack {
 
     const saveZendeskArticlesHandlerFunction = new lambda.Function(scope, 'SaveZendeskArticlesHandlerFunction', {
       runtime: lambda.Runtime.PYTHON_3_12, // Choose any supported Node.js runtime
-      code: lambda.Code.fromAsset(path.join(__dirname, 'zendesk-crawler'),{
-        bundling: {
-          image: lambda.Runtime.PYTHON_3_12.bundlingImage,
-          command: [
-            'bash', '-c',
-            'pip install -r requirements.txt -t /asset-output && cp -au . /asset-output'
-          ],
-        },
-      }), // Points to the lambda directory
+      code: lambda.Code.fromAsset(path.join(__dirname, 'zendesk-crawler')
+      // ,{
+      //   bundling: {
+      //     image: lambda.Runtime.PYTHON_3_12.bundlingImage,
+      //     command: [
+      //       'bash', '-c',
+      //       'pip install -r requirements.txt -t /asset-output && cp -au . /asset-output'
+      //     ],
+      //   },
+      // }
+    ), // Points to the lambda directory
       handler: 'lambda_function.lambda_handler', // Points to the 'hello' file in the lambda directory
       environment: {
         "ARTICLE_BUCKET" : props.knowledgeBucket.bucketName,    
