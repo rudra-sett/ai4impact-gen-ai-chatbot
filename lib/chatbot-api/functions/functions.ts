@@ -241,7 +241,7 @@ export class LambdaFunctionStack extends cdk.Stack {
     }));
     this.zendeskSyncFunction = saveZendeskArticlesHandlerFunction;
 
-    const schedulerRole = new iam.Role(this, "schedulerRole", {
+    const schedulerRole = new iam.Role(scope, "SchedulerRole", {
       assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
      });
     
@@ -251,7 +251,7 @@ export class LambdaFunctionStack extends cdk.Stack {
       resources: [this.zendeskSyncFunction.functionArn],      
     }))
      
-    const zendeskSchedule = new scheduler.CfnSchedule(this, 'ZendeskSchedule', {
+    const zendeskSchedule = new scheduler.CfnSchedule(scope, 'ZendeskSchedule', {
       flexibleTimeWindow: {
         mode: 'FLEXIBLE',            
         maximumWindowInMinutes: 15,
