@@ -8,6 +8,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import * as kendra from 'aws-cdk-lib/aws-kendra';
 import * as s3 from "aws-cdk-lib/aws-s3";
+import { aws_scheduler as scheduler } from 'aws-cdk-lib';
 
 interface LambdaFunctionStackProps {  
   readonly wsApiEndpoint : string;  
@@ -239,5 +240,41 @@ export class LambdaFunctionStack extends cdk.Stack {
       resources: [props.zendeskBucket.bucketArn,props.zendeskBucket.bucketArn+"/*"]
     }));
     this.zendeskSyncFunction = saveZendeskArticlesHandlerFunction;
+
+    const schedulerRole = new iam.Role(this, "schedulerRole", {
+      assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
+     });
+    
+    schedulerRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['lambda:InvokeFunction'],
+      resources: [this.zendeskSyncFunction.functionArn],      
+    }))
+     
+    const zendeskSchedule = new scheduler.CfnSchedule(this, 'ZendeskSchedule', {
+      flexibleTimeWindow: {
+        mode: 'FLEXIBLE',            
+        maximumWindowInMinutes: 15,
+      },
+      scheduleExpression: 'rate(14 days)',
+      target: {
+        arn: saveZendeskArticlesHandlerFunction.functionArn,
+        roleArn: schedulerRole.roleArn,                
+        retryPolicy: {
+          maximumEventAgeInSeconds: 180,
+          maximumRetryAttempts: 3,
+        },        
+      },
+    
+      // the properties below are optional
+      description: 'Syncs the Zendesk knowledge base with the chatbot every 2 weeks',
+      // endDate: 'endDate',
+      // groupName: 'groupName',
+      // kmsKeyArn: 'kmsKeyArn',
+      // name: 'name',
+      // scheduleExpressionTimezone: 'scheduleExpressionTimezone',
+      // startDate: 'startDate',
+      // state: 'state',
+    });
   }
 }
