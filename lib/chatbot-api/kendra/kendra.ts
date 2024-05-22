@@ -154,6 +154,7 @@ export class KendraIndexStack extends cdk.Stack {
     });
 
     this.zendeskSource = zendeskSource;
+    dataSource.addDependency(index);
     this.kendraIndex = index;
     this.kendraSource = dataSource;
   }

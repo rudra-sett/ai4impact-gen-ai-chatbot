@@ -28,7 +28,7 @@ export class RestBackendAPI extends Construct {
 
     const httpApi = new apigwv2.HttpApi(this, 'HTTP-API', {
       corsPreflight: {
-        allowHeaders: ['Authorization'],
+        allowHeaders: ['*'],
         allowMethods: [
           apigwv2.CorsHttpMethod.GET,
           apigwv2.CorsHttpMethod.HEAD,
