@@ -22,5 +22,5 @@ def lambda_handler(event, context):
     article_bucket = os.environ["ARTICLE_BUCKET"]    
     print("saving pages")
     for page in pages:
-      file_name = f"{page["title"]+'.txt'}"
+      file_name = f"{page["title"]+'.html'}"
       s3.put_object(Bucket=article_bucket, Key=file_name, Body=page["body"])
