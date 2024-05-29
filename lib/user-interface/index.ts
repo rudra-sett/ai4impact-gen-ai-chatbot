@@ -16,10 +16,10 @@ import { Utils } from "../shared/utils"
 import { OIDCIntegrationName } from "../constants";
 
 export interface UserInterfaceProps {
-  readonly userPoolId: string;
-  readonly userPoolClientId: string;
+  //readonly userPoolId: string;
+  //readonly userPoolClientId: string;
   readonly api: ChatBotApi;
-  readonly cognitoDomain : string;
+  //readonly cognitoDomain : string;
 }
 
 export class UserInterface extends Construct {
@@ -60,10 +60,10 @@ export class UserInterface extends Construct {
     const exportsAsset = s3deploy.Source.jsonData("aws-exports.json", {
       Auth: {
         region: cdk.Aws.REGION,
-        userPoolId: props.userPoolId,
-        userPoolWebClientId: props.userPoolClientId,
+        //userPoolId: props.userPoolId,
+        //userPoolWebClientId: props.userPoolClientId,
         oauth: {
-          domain: props.cognitoDomain.concat(".auth.us-east-1.amazoncognito.com"),
+          //domain: props.cognitoDomain.concat(".auth.us-east-1.amazoncognito.com"),
           scope: ["aws.cognito.signin.user.admin","email", "openid", "profile"],
           redirectSignIn: "https://" + distribution.distributionDomainName,
           // redirectSignOut: "https://myapplications.microsoft.com/",

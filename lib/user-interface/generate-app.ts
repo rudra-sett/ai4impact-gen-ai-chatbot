@@ -8,8 +8,8 @@ import { NagSuppressions } from "cdk-nag";
 
 
 export interface WebsiteProps {  
-  readonly userPoolId: string;
-  readonly userPoolClientId: string;
+  //readonly userPoolId: string;
+  //readonly userPoolClientId: string;
   readonly api: ChatBotApi;
   readonly websiteBucket: s3.Bucket;
 }

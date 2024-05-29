@@ -24,9 +24,9 @@ import { Construct } from "constructs";
 
 // import { NagSuppressions } from "cdk-nag";
 
-export interface ChatBotApiProps {
-  readonly authentication: AuthorizationStack; 
-}
+// export interface ChatBotApiProps {
+//   readonly authentication: AuthorizationStack; 
+// }
 
 export class ChatBotApi extends Construct {
   public readonly httpAPI: RestBackendAPI;
@@ -36,7 +36,7 @@ export class ChatBotApi extends Construct {
   // public readonly userFeedbackBucket: s3.Bucket;
   // public readonly wsAPI: apigwv2.WebSocketApi;
 
-  constructor(scope: Construct, id: string, props: ChatBotApiProps) {
+  constructor(scope: Construct, id: string) {
     super(scope, id);
 
     const tables = new TableStack(this, "TableStack");
@@ -59,7 +59,7 @@ export class ChatBotApi extends Construct {
         knowledgeBucket: buckets.kendraBucket
       })
 
-    const wsAuthorizer = new WebSocketLambdaAuthorizer('WebSocketAuthorizer', props.authentication.lambdaAuthorizer, {identitySource: ['route.request.querystring.Authorization']});
+    //const wsAuthorizer = new WebSocketLambdaAuthorizer('WebSocketAuthorizer', props.authentication.lambdaAuthorizer, {identitySource: ['route.request.querystring.Authorization']});
 
     websocketBackend.wsAPI.addRoute('getChatbotResponse', {
       integration: new WebSocketLambdaIntegration('chatbotResponseIntegration', lambdaFunctions.chatFunction),
@@ -67,7 +67,7 @@ export class ChatBotApi extends Construct {
     });
     websocketBackend.wsAPI.addRoute('$connect', {
       integration: new WebSocketLambdaIntegration('chatbotConnectionIntegration', lambdaFunctions.chatFunction),
-      authorizer: wsAuthorizer
+      //authorizer: wsAuthorizer
     });
     websocketBackend.wsAPI.addRoute('$default', {
       integration: new WebSocketLambdaIntegration('chatbotConnectionIntegration', lambdaFunctions.chatFunction),
@@ -85,16 +85,15 @@ export class ChatBotApi extends Construct {
     websocketBackend.wsAPI.grantManageConnections(lambdaFunctions.chatFunction);
 
     
-    const httpAuthorizer = new HttpJwtAuthorizer('HTTPAuthorizer', props.authentication.userPool.userPoolProviderUrl,{
-      jwtAudience: [props.authentication.userPoolClient.userPoolClientId],
-    })
+    // const httpAuthorizer = new HttpJwtAuthorizer('HTTPAuthorizer', props.authentication.userPool.userPoolProviderUrl,{
+    //   jwtAudience: [props.authentication.userPoolClient.userPoolClientId],
+    //}
 
     const sessionAPIIntegration = new HttpLambdaIntegration('SessionAPIIntegration', lambdaFunctions.sessionFunction);
     restBackend.restAPI.addRoutes({
       path: "/user-session",
       methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.POST, apigwv2.HttpMethod.DELETE],
       integration: sessionAPIIntegration,
-      authorizer: httpAuthorizer,
     })
 
     // SESSION_HANDLER
@@ -109,7 +108,6 @@ export class ChatBotApi extends Construct {
       path: "/user-feedback",
       methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.POST, apigwv2.HttpMethod.DELETE],
       integration: feedbackAPIIntegration,
-      authorizer: httpAuthorizer,
     })
 
     const feedbackAPIDownloadIntegration = new HttpLambdaIntegration('FeedbackDownloadAPIIntegration', lambdaFunctions.feedbackFunction);
@@ -117,7 +115,6 @@ export class ChatBotApi extends Construct {
       path: "/user-feedback/download-feedback",
       methods: [apigwv2.HttpMethod.POST],
       integration: feedbackAPIDownloadIntegration,
-      authorizer: httpAuthorizer,
     })
 
     const s3GetAPIIntegration = new HttpLambdaIntegration('S3GetAPIIntegration', lambdaFunctions.getS3Function);
@@ -125,7 +122,6 @@ export class ChatBotApi extends Construct {
       path: "/s3-bucket-data",
       methods: [apigwv2.HttpMethod.POST],
       integration: s3GetAPIIntegration,
-      authorizer: httpAuthorizer,
     })
 
     const s3DeleteAPIIntegration = new HttpLambdaIntegration('S3DeleteAPIIntegration', lambdaFunctions.deleteS3Function);
@@ -133,7 +129,6 @@ export class ChatBotApi extends Construct {
       path: "/delete-s3-file",
       methods: [apigwv2.HttpMethod.POST],
       integration: s3DeleteAPIIntegration,
-      authorizer: httpAuthorizer,
     })
 
     const s3UploadAPIIntegration = new HttpLambdaIntegration('S3UploadAPIIntegration', lambdaFunctions.uploadS3Function);
@@ -141,7 +136,6 @@ export class ChatBotApi extends Construct {
       path: "/signed-url",
       methods: [apigwv2.HttpMethod.POST],
       integration: s3UploadAPIIntegration,
-      authorizer: httpAuthorizer,
     })
 
     const kendraSyncProgressAPIIntegration = new HttpLambdaIntegration('KendraSyncAPIIntegration', lambdaFunctions.syncKendraFunction);
@@ -149,7 +143,6 @@ export class ChatBotApi extends Construct {
       path: "/kendra-sync/still-syncing",
       methods: [apigwv2.HttpMethod.GET],
       integration: kendraSyncProgressAPIIntegration,
-      authorizer: httpAuthorizer,
     })
 
     const kendraSyncAPIIntegration = new HttpLambdaIntegration('KendraSyncAPIIntegration', lambdaFunctions.syncKendraFunction);
@@ -157,7 +150,6 @@ export class ChatBotApi extends Construct {
       path: "/kendra-sync/sync-kendra",
       methods: [apigwv2.HttpMethod.GET],
       integration: kendraSyncAPIIntegration,
-      authorizer: httpAuthorizer,
     })
     
 

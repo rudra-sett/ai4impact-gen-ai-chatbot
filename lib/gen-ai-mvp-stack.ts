@@ -21,12 +21,12 @@ export class GenAiMvpStack extends cdk.Stack {
     // if (AUTHENTICATION) {
     //   authentication = new AuthorizationStack(this, "Authorization")
     // }
-    const authentication = new AuthorizationStack(this, "Authorization")
-    const chatbotAPI = new ChatBotApi(this, "ChatbotAPI", {authentication});
+    //const authentication = new AuthorizationStack(this, "Authorization")
+    const chatbotAPI = new ChatBotApi(this, "ChatbotAPI");
     const userInterface = new UserInterface(this, "UserInterface",
-     {userPoolId : authentication.userPool.userPoolId,
-      userPoolClientId : authentication.userPoolClient.userPoolClientId,
-      cognitoDomain : cognitoDomainName,
+     {//userPoolId : authentication.userPool.userPoolId,
+      //userPoolClientId : authentication.userPoolClient.userPoolClientId,
+      //cognitoDomain : cognitoDomainName,
       api : chatbotAPI
     })
     
