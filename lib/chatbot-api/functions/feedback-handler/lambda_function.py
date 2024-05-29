@@ -23,7 +23,7 @@ def lambda_handler(event, context):
     http_method = event.get('routeKey')
     if 'POST' in http_method:
         if event.get('rawPath') == '/user-feedback/download-feedback':
-            return downloadFeedback(event)
+            return download_feedback(event)
         return post_feedback(event)
     elif 'GET' in http_method:
         return get_feedback(event)
@@ -75,43 +75,43 @@ def post_feedback(event):
         }
         
     
-def downloadFeedback(event):
+def download_feedback(event):
     data = json.loads(event['body'])
     start_time = data.get('startTime')
     end_time = data.get('endTime')
     topic = data.get('topic')
         
-    # Prepare the query parameters
-    query_kwargs = {
-        'KeyConditionExpression': Key('CreatedAt').between(start_time, end_time) & Key('Topic').eq(topic),
-        'Limit' : 30
-    }
-    
     response = None
-    
-    
-    if not topic or topic=="any":
-        query_kwargs['IndexName'] = 'CreatedAt-index'
-        query_kwargs['KeyConditionExpression'] = Key('CreatedAt').between(start_time, end_time)
 
-    print(query_kwargs)
-    # Query the DynamoDB table with pagination support
-    response = table.query(**query_kwargs)
+    if not topic or topic=="any":        
+        query_kwargs = {
+            'IndexName': 'CreatedAtIndex',
+            'FilterExpression': Attr('CreatedAt').between(start_time, end_time),            
+        }
+        response = table.scan(**query_kwargs)
+    else:
+        query_kwargs = {
+            'KeyConditionExpression': Key('CreatedAt').between(start_time, end_time) & Key('Topic').eq(topic),            
+        }   
+        response = table.query(**query_kwargs)
+
+    print(query_kwargs)    
     print(response)
     
+    def clean_csv(field):
+        print("working")
+        field = str(field).replace('"', '""')
+        field = field.replace('\n','').replace(',', '')
+        return f'{field}'
     csv_content = "FeedbackID, SessionID, UserPrompt, FeedbackComment, Topic, Problem, Feedback, ChatbotMessage, CreatedAt\n"
-    
     for item in response['Items']:
-        csv_content += f"{item['FeedbackID']}, {item['SessionID']}, {item['UserPrompt']}, {item['FeedbackComments']}, {item['Topic']}, {item['Problem']}, {item['Feedback']}, {item['ChatbotMessage']}, {item['CreatedAt']}\n"
-        
-        
+        csv_content += f"{clean_csv(item['FeedbackID'])}, {clean_csv(item['SessionID'])}, {clean_csv(item['UserPrompt'])}, {clean_csv(item['FeedbackComments'])}, {clean_csv(item['Topic'])}, {clean_csv(item['Problem'])}, {clean_csv(item['Feedback'])}, {clean_csv(item['ChatbotMessage'])}, {clean_csv(item['CreatedAt'])}\n"
+        print(csv_content)
     s3 = boto3.client('s3')
     S3_DOWNLOAD_BUCKET = os.environ["FEEDBACK_S3_DOWNLOAD"]
     file_name = f"feedback-{start_time}-{end_time}.csv"
     s3.put_object(Bucket=S3_DOWNLOAD_BUCKET, Key=file_name, Body=csv_content)
-    
     presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': S3_DOWNLOAD_BUCKET, 'Key': file_name}, ExpiresIn=3600)
-    
     return{
         'headers': {
                 'Access-Control-Allow-Origin': "*"
