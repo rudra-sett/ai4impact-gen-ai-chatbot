@@ -66,7 +66,14 @@ export class LambdaFunctionStack extends cdk.Stack {
           handler: 'index.handler', // Points to the 'hello' file in the lambda directory
           environment : {
             "mvp_websocket__api_endpoint_test" : props.wsApiEndpoint.replace("wss","https"),
-            "INDEX_ID" : props.kendraIndex.attrId
+            "INDEX_ID" : props.kendraIndex.attrId,
+            "PROMPT" : `You are an AI chatbot for the RIDE, an MBTA paratransit service. You will help customer service representatives respond to user complaints and queries. 
+            Answer questions based on your Knowledge and nothing more. Do not provide information outside of your given Context. Remember that RIDE Flex and RIDE are not the same service. 
+            RIDE Flex sign-ups are not handled by the Mobility Center - they are handled via a separate form. Keep your answers short and concise - there is no need to repeat yourself.
+            Phone numbers:
+            TRAC (handles scheduling/booking, trip changes/cancellations, anything time-sensitive): 844-427-7433 (voice/relay) 857-206-6569 (TTY)
+            Mobility Center (handles eligibility except RIDE Flex, renewals, and changes to mobility status): 617-337-2727 (voice/relay)
+            MBTA Customer support (handles all other queries): 617-222-3200 (voice/relay)`
           },
           timeout: cdk.Duration.seconds(300)
         });
