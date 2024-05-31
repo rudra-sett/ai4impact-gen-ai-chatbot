@@ -2,6 +2,12 @@ import os
 import requests
 import boto3
 from requests.auth import HTTPBasicAuth
+# Retrieve environment variables for Kendra index and source index
+kendra_index = os.environ['KENDRA']
+source_index = os.environ['SOURCE']
+
+# Initialize a Kendra client
+client = boto3.client('kendra')
 
 def lambda_handler(event, context):
     help_center_endpoint = os.environ.get("HELP_CENTER_ENDPOINT")   
@@ -22,5 +28,10 @@ def lambda_handler(event, context):
     article_bucket = os.environ["ARTICLE_BUCKET"]    
     print("saving pages")
     for page in pages:
-      file_name = f"{page["title"]+'.html'}"
+      file_name = f"{page["title"]+' (Zendesk)'+'.html'}"
       s3.put_object(Bucket=article_bucket, Key=file_name, Body=page["body"])
+    print("starting kendra sync for zendesk")
+    client.start_data_source_sync_job(
+                    Id=source_index,
+                    IndexId=kendra_index
+            )

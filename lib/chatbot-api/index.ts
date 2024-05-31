@@ -57,7 +57,8 @@ export class ChatBotApi extends Construct {
         feedbackTable: tables.feedbackTable,
         feedbackBucket: buckets.feedbackBucket,
         knowledgeBucket: buckets.kendraBucket,
-        zendeskBucket: buckets.zendeskBucket
+        zendeskBucket: buckets.zendeskBucket,
+        zendeskSource: kendra.zendeskSource
       })
 
     const wsAuthorizer = new WebSocketLambdaAuthorizer('WebSocketAuthorizer', props.authentication.lambdaAuthorizer, {identitySource: ['route.request.querystring.Authorization']});

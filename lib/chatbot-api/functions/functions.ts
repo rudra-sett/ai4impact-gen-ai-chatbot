@@ -19,6 +19,7 @@ interface LambdaFunctionStackProps {
   readonly feedbackBucket : s3.Bucket;
   readonly knowledgeBucket : s3.Bucket;
   readonly zendeskBucket : s3.Bucket;
+  readonly zendeskSource : kendra.CfnDataSource;
 }
 
 export class LambdaFunctionStack extends cdk.Stack {  
@@ -232,7 +233,9 @@ export class LambdaFunctionStack extends cdk.Stack {
     ), // Points to the lambda directory
       handler: 'lambda_function.lambda_handler', // Points to the 'hello' file in the lambda directory
       environment: {
-        "ARTICLE_BUCKET" : props.zendeskBucket.bucketName,    
+        "ARTICLE_BUCKET" : props.zendeskBucket.bucketName,
+        "KENDRA" : props.kendraIndex.attrId,
+        "SOURCE" : props.zendeskSource.attrId,
         "USERNAME" : "PLACEHOLDER",
         "PASSWORD" : "PLACEHOLDER",
         "HELP_CENTER_ENDPOINT" : "PLACEHOLDER"    
@@ -246,6 +249,13 @@ export class LambdaFunctionStack extends cdk.Stack {
         's3:*'
       ],
       resources: [props.zendeskBucket.bucketArn,props.zendeskBucket.bucketArn+"/*"]
+    }));
+    saveZendeskArticlesHandlerFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'kendra:*'
+      ],
+      resources: [props.kendraIndex.attrArn, props.zendeskSource.attrArn]
     }));
     this.zendeskSyncFunction = saveZendeskArticlesHandlerFunction;
 
