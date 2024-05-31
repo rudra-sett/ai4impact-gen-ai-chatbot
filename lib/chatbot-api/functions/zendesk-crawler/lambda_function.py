@@ -16,11 +16,13 @@ def lambda_handler(event, context):
 
     pages = []
     data = requests.get(help_center_endpoint,auth=HTTPBasicAuth(username, password)).json()
-    pages.append(*data["articles"])
+    for article in data["articles"]: 
+        pages.append(article)
     next_page = data["next_page"]
     while next_page:
         data = requests.get(next_page,auth=HTTPBasicAuth(username, password)).json()
-        pages.append(data["articles"])
+        for article in data["articles"]: 
+            pages.append(article)
         next_page = data["next_page"]
         print(next_page)
     print("completed scan")
