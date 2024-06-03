@@ -53,7 +53,8 @@ def post_feedback(event):
             'Problem': feedback_data.get("problem",''),
             'Feedback': feedback_data["feedback"],
             'ChatbotMessage': feedback_data['completion'],
-            'CreatedAt': timestamp
+            'CreatedAt': timestamp,
+            'Any' : "YES"
         }
         # Put the item into the DynamoDB table
         table.put_item(Item=item)
@@ -83,17 +84,16 @@ def download_feedback(event):
         
     response = None
 
-    if not topic or topic=="any":        
+    if not topic or topic=="any":                
         query_kwargs = {
-            'IndexName': 'CreatedAtIndex',
-            'FilterExpression': Attr('CreatedAt').between(start_time, end_time),            
+            'IndexName': 'AnyIndex',
+            'KeyConditionExpression': Attr('CreatedAt').between(start_time, end_time),            
         }
-        response = table.scan(**query_kwargs)
     else:
         query_kwargs = {
             'KeyConditionExpression': Key('CreatedAt').between(start_time, end_time) & Key('Topic').eq(topic),            
         }   
-        response = table.query(**query_kwargs)
+    response = table.query(**query_kwargs)
 
     print(query_kwargs)    
     print(response)
@@ -142,14 +142,18 @@ def get_feedback(event):
             query_kwargs['ExclusiveStartKey'] = json.loads(exclusive_start_key)
         
         if not topic or topic=="any":
-            query_kwargs['IndexName'] = 'CreatedAtIndex'
-            # query_kwargs['KeyConditionExpression'] = Key('CreatedAt').between(start_time, end_time)
-            del query_kwargs['KeyConditionExpression']
-            query_kwargs["FilterExpression"]=Attr('CreatedAt').between(start_time, end_time)
+            # query_kwargs['IndexName'] = 'CreatedAtIndex'
+            # # query_kwargs['KeyConditionExpression'] = Key('CreatedAt').between(start_time, end_time)
+            # del query_kwargs['KeyConditionExpression']
+            # query_kwargs["FilterExpression"]=Attr('CreatedAt').between(start_time, end_time)
 
-            response = table.scan(**query_kwargs)
-        else:
-            response = table.query(**query_kwargs)
+            # response = table.scan(**query_kwargs)
+            query_kwargs = {
+            'IndexName': 'AnyIndex',
+            'KeyConditionExpression': Attr('CreatedAt').between(start_time, end_time),            
+            }
+        # else:
+        response = table.query(**query_kwargs)
         # print(query_kwargs)
         # Query the DynamoDB table with pagination support
         
