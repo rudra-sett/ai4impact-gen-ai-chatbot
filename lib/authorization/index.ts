@@ -29,6 +29,9 @@ export class AuthorizationStack extends Construct {
       signInAliases: {
         email: true,
       },
+      customAttributes : {
+        'role' : new cognito.StringAttribute({ minLen: 0, maxLen: 30, mutable: true })
+      }
       // ... other user pool configurations
     });
     this.userPool = userPool;
