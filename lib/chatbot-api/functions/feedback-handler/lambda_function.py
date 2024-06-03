@@ -20,14 +20,30 @@ class DecimalEncoder(json.JSONEncoder):
 
 def lambda_handler(event, context):
     # Determine the type of HTTP method
+    admin = False
+    try:
+        claims = event["requestContext"]["authorizer"]["jwt"]["claims"]
+        roles = json.loads(claims['custom:role'])
+        if "Admin" in roles:                        
+            print("admin granted!")
+            admin = True
+        else:
+            print("not admin")
+            admin = False
+    except:
+        return {
+                'statusCode': 500,
+                'headers': {'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps('Unable to check user role, please ensure you have Cognito configured correctly with a custom:role attribute.')
+            }
     http_method = event.get('routeKey')
     if 'POST' in http_method:
         if event.get('rawPath') == '/user-feedback/download-feedback':
-            return downloadFeedback(event)
+            return download_feedback(event)
         return post_feedback(event)
-    elif 'GET' in http_method:
+    elif 'GET' in http_method and admin:
         return get_feedback(event)
-    elif 'DELETE' in http_method:
+    elif 'DELETE' in http_method and admin:
         return delete_feedback(event)
     else:
         return {
@@ -76,7 +92,7 @@ def post_feedback(event):
         }
         
     
-def downloadFeedback(event):
+def download_feedback(event):
     data = json.loads(event['body'])
     start_time = data.get('startTime')
     end_time = data.get('endTime')
