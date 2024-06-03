@@ -93,7 +93,7 @@ def downloadFeedback(event):
     if not topic or topic=="any":                
         query_kwargs = {
             'IndexName': 'AnyIndex',
-            'KeyConditionExpression': Attr('CreatedAt').between(start_time, end_time),            
+            'KeyConditionExpression': Key('Any').eq("ANY") & Key('CreatedAt').between(start_time, end_time)
         }
     else:
         query_kwargs = {
@@ -157,7 +157,7 @@ def get_feedback(event):
             # response = table.scan(**query_kwargs)
             query_kwargs = {
             'IndexName': 'AnyIndex',
-            'KeyConditionExpression': Attr('CreatedAt').between(start_time, end_time),            
+            'KeyConditionExpression': Key('Any').eq("ANY") & Key('CreatedAt').between(start_time, end_time),            
             }
         # else:
         response = table.query(**query_kwargs)
