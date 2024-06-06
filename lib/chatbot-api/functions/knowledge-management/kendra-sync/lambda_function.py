@@ -36,7 +36,21 @@ def check_running():
     # Check if there are any jobs in the history
     if len(hist) > 0:
         return True
-    
+
+def get_last_sync():    
+    syncs = client.list_data_source_sync_jobs(
+        Id=source_index,
+        IndexId=kendra_index,
+        StatusFilter='SUCCEEDED'
+    )
+    hist = syncs["History"]
+    time = hist[0]["EndTime"].strftime('%B %d, %Y, %I:%M%p UTC')
+    return {
+                'statusCode': 200,
+                'headers': {'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps(time)
+            }
+
 
 def lambda_handler(event, context):
     """
@@ -108,3 +122,5 @@ def lambda_handler(event, context):
             'headers': {'Access-Control-Allow-Origin': '*'},
             'body': json.dumps(status_msg)
             }
+    elif "last-sync" in resource_path:
+        return get_last_sync()
