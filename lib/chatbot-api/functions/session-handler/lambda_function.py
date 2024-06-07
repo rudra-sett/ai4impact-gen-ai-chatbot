@@ -30,6 +30,7 @@ def add_session(session_id, user_id, chat_history, title, new_chat_entry):
         return response.get("Attributes", {})
     except ClientError as error:
         # Check for specific DynamoDB client errors
+        print("Caught error: DynamoDB error - could not add new session")
         if error.response["Error"]["Code"] == "ResourceNotFoundException":
             # Return an error message if the DynamoDB resource (e.g., table, item) is not found
             return {'statusCode': 404,
@@ -50,6 +51,7 @@ def get_session(session_id, user_id):
         # Attempt to retrieve an item using the session_id and user_id as keys
         response = table.get_item(Key={"session_id": session_id, "user_id": user_id})
     except ClientError as error:
+        print("Caught error: DynamoDB error - could not get session")
         # Handle specific error when the specified resource is not found in DynamoDB
         if error.response["Error"]["Code"] == "ResourceNotFoundException":
             # Return a 404 Not Found status code and message when the item is not found
@@ -106,6 +108,7 @@ def update_session(session_id, user_id, new_chat_entry):
             'body': response.get("Attributes", {})
         }
     except ClientError as error:
+        print("Caught error: DynamoDB error - could not update session")
         # Return a structured error message and status code
         error_code = error.response['Error']['Code']
         if error_code == "ResourceNotFoundException":
@@ -123,6 +126,7 @@ def update_session(session_id, user_id, new_chat_entry):
                 'body': 'Failed to update the session due to a database error.'
             }
     except Exception as general_error:
+        print("Caught error: DynamoDB error - could not update session")
         # Return a generic error response for unexpected errors
         return {
             'statusCode': 500,
@@ -137,6 +141,7 @@ def delete_session(session_id, user_id):
         # Attempt to delete an item from the DynamoDB table based on the provided session_id and user_id.
         table.delete_item(Key={"SessionId": session_id, "UserId": user_id})
     except ClientError as error:
+        print("Caught error: DynamoDB error - could not delete session")
         # Handle specific DynamoDB client errors. If the item cannot be found or another error occurs, return the appropriate message.
         error_code = error.response['Error']['Code']
         if error_code == "ResourceNotFoundException":
@@ -195,6 +200,7 @@ def list_sessions_by_user_id(user_id):
                 break
 
     except ClientError as error:
+        print("Caught error: DynamoDB error - could not list user sessions")
         # More detailed client error handling based on DynamoDB error codes
         error_code = error.response['Error']['Code']
         if error_code == "ResourceNotFoundException":
@@ -217,12 +223,14 @@ def list_sessions_by_user_id(user_id):
             'Access-Control-Allow-Origin': '*'  # CORS header allowing access from any domain
         }, 'body': "Internal server error"}
     except KeyError as key_error:
+        print("Caught error: DynamoDB error - could not list user sessions")
         # Handle errors that might occur if expected keys are missing in the response
         return {'statusCode': 500,
         'headers': {
             'Access-Control-Allow-Origin': '*'  # CORS header allowing access from any domain
         }, 'body': f"Key error: {str(key_error)}"}
     except Exception as general_error:
+        print("Caught error: DynamoDB error - could not list user sessions")
         # Generic error handling for any other unforeseen errors
         return {'statusCode': 500,
         'headers': {

@@ -1,10 +1,6 @@
-import * as cognito from "aws-cdk-lib/aws-cognito";
-import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import * as s3 from "aws-cdk-lib/aws-s3";
-import * as sns from "aws-cdk-lib/aws-sns";
-import * as ssm from "aws-cdk-lib/aws-ssm";
-import * as iam from "aws-cdk-lib/aws-iam";
+
 import * as cdk from "aws-cdk-lib";
+import * as lambda from "aws-cdk-lib/aws-lambda"
 import * as path from "path";
 
 import { AuthorizationStack } from '../authorization'
@@ -31,6 +27,11 @@ export interface ChatBotApiProps {
 export class ChatBotApi extends Construct {
   public readonly httpAPI: RestBackendAPI;
   public readonly wsAPI: WebsocketBackendAPI;
+
+  public readonly chatFunction : lambda.Function;
+  public readonly sessionFunction : lambda.Function;
+  public readonly feedbackFunction : lambda.Function;  
+  public readonly zendeskSyncFunction : lambda.Function;
   // public readonly byUserIdIndex: string;
   // public readonly filesBucket: s3.Bucket;
   // public readonly userFeedbackBucket: s3.Bucket;
@@ -60,6 +61,11 @@ export class ChatBotApi extends Construct {
         zendeskBucket: buckets.zendeskBucket,
         zendeskSource: kendra.zendeskSource
       })
+
+    this.chatFunction = lambdaFunctions.chatFunction;
+    this.sessionFunction = lambdaFunctions.sessionFunction;
+    this.feedbackFunction = lambdaFunctions.feedbackFunction;
+    this.zendeskSyncFunction = lambdaFunctions.zendeskSyncFunction;
 
     const wsAuthorizer = new WebSocketLambdaAuthorizer('WebSocketAuthorizer', props.authentication.lambdaAuthorizer, {identitySource: ['route.request.querystring.Authorization']});
 

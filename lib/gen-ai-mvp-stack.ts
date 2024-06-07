@@ -4,6 +4,7 @@ import { ChatBotApi } from "./chatbot-api";
 import { AUTHENTICATION, cognitoDomainName } from "./constants"
 import { AuthorizationStack } from "./authorization"
 import { UserInterface } from "./user-interface"
+import { LoggingStack } from './logging';
 
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
@@ -22,13 +23,21 @@ export class GenAiMvpStack extends cdk.Stack {
     //   authentication = new AuthorizationStack(this, "Authorization")
     // }
     const authentication = new AuthorizationStack(this, "Authorization")
-    const chatbotAPI = new ChatBotApi(this, "ChatbotAPI", {authentication});
+    const chatbotAPI = new ChatBotApi(this, "ChatbotAPI", { authentication });
     const userInterface = new UserInterface(this, "UserInterface",
-     {userPoolId : authentication.userPool.userPoolId,
-      userPoolClientId : authentication.userPoolClient.userPoolClientId,
-      cognitoDomain : cognitoDomainName,
-      api : chatbotAPI
-    })
+      {
+        userPoolId: authentication.userPool.userPoolId,
+        userPoolClientId: authentication.userPoolClient.userPoolClientId,
+        cognitoDomain: cognitoDomainName,
+        api: chatbotAPI
+      })
+    const logger = new LoggingStack(this, "LoggingStack", {
+      feedbackFunction : chatbotAPI.feedbackFunction,
+      chatFunction : chatbotAPI.chatFunction,
+      sessionFunction : chatbotAPI.sessionFunction,
+      zendeskFunction : chatbotAPI.zendeskSyncFunction,       
+    });
     
+
   }
 }

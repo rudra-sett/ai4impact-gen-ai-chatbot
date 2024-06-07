@@ -15,7 +15,10 @@ def lambda_handler(event, context):
     password = os.environ.get("PASSWORD")
 
     pages = []
-    data = requests.get(help_center_endpoint,auth=HTTPBasicAuth(username, password)).json()
+    try:
+        data = requests.get(help_center_endpoint,auth=HTTPBasicAuth(username, password)).json()
+    except:
+        print("Caught error: Zendesk crawl error")
     for article in data["articles"]: 
         pages.append(article)
     next_page = data["next_page"]
@@ -33,7 +36,9 @@ def lambda_handler(event, context):
       file_name = f"{page["title"]+' (Zendesk)'+'.html'}"
       s3.put_object(Bucket=article_bucket, Key=file_name, Body=page["body"])
     print("starting kendra sync for zendesk")
-    client.start_data_source_sync_job(
-                    Id=source_index,
-                    IndexId=kendra_index
-            )
+    try:
+        client.start_data_source_sync_job(
+                        Id=source_index,
+                        IndexId=kendra_index)
+    except:
+        print("Caught error: Zendesk Kendra sync error")
