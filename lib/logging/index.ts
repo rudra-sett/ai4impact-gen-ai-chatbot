@@ -23,50 +23,50 @@ export class LoggingStack extends Construct {
     const feedbackDDBFilter = props.feedbackFunction.logGroup.addMetricFilter("FeedbackHandlerDDBFilter", {      
       metricNamespace: 'Feedback Handler',
       metricName: 'DynamoDB Errors',
-      filterPattern: logs.FilterPattern.exists('DynamoDB'),      
+      filterPattern: logs.FilterPattern.anyTerm('DynamoDB'),      
     })    
 
     /*const feedbackAdminFilter = props.feedbackFunction.logGroup.addMetricFilter("FeedbackHandlerAdminFilter", {      
       metricNamespace: 'Feedback Handler',
       metricName: 'Admin Access Errors',
-      filterPattern: logs.FilterPattern.exists('admin access'),      
+      filterPattern: logs.FilterPattern.anyTerm('admin access'),      
     })*/
 
     const sessionsDDBFilter = props.sessionFunction.logGroup.addMetricFilter("SessionHandlerDDBFilter", {      
       metricNamespace: 'Session Handler',
       metricName: 'DynamoDB Errors',
-      filterPattern: logs.FilterPattern.exists('DynamoDB'),      
+      filterPattern: logs.FilterPattern.anyTerm('DynamoDB'),      
     })
     
 
     const chatModelInvokeFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerInvokeFilter", {      
       metricNamespace: 'Chat Handler',
       metricName: 'Model Invoke Errors',
-      filterPattern: logs.FilterPattern.exists('invoke error'),      
+      filterPattern: logs.FilterPattern.anyTerm('invoke error'),      
     })
 
     const chatModelKendraRelevancyFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRelevancyFilter", {      
       metricNamespace: 'Chat Handler',
       metricName: 'Kendra Relevancy Errors',
-      filterPattern: logs.FilterPattern.exists('no relevant sources'),      
+      filterPattern: logs.FilterPattern.anyTerm('no relevant sources'),      
     })
 
     const chatModelKendraRetrieveFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRetrieveFilter", {      
       metricNamespace: 'Chat Handler',
       metricName: 'Kendra Retrieval Errors',
-      filterPattern: logs.FilterPattern.exists('could not retreive'),      
+      filterPattern: logs.FilterPattern.anyTerm('could not retreive'),      
     })
 
     const zendeskCrawlFilter = props.zendeskFunction.logGroup.addMetricFilter("ZendeskCrawlFilter", {      
       metricNamespace: 'Zendesk Sync',
       metricName: 'Crawl Errors',
-      filterPattern: logs.FilterPattern.exists('crawl error'),      
+      filterPattern: logs.FilterPattern.anyTerm('crawl error'),      
     })
 
     const zendeskSyncFilter = props.zendeskFunction.logGroup.addMetricFilter("ZendeskSyncFilter", {      
       metricNamespace: 'Zendesk Sync',
       metricName: 'Kendra Sync Errors',
-      filterPattern: logs.FilterPattern.exists('Kendra sync error'),      
+      filterPattern: logs.FilterPattern.anyTerm('Kendra sync error'),      
     })
 
     /* Alarms */
