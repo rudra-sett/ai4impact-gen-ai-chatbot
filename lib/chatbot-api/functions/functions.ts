@@ -66,7 +66,7 @@ export class LambdaFunctionStack extends cdk.Stack {
           code: lambda.Code.fromAsset(path.join(__dirname, 'websocket-chat')), // Points to the lambda directory
           handler: 'index.handler', // Points to the 'hello' file in the lambda directory
           environment : {
-            "mvp_websocket__api_endpoint_test" : props.wsApiEndpoint.replace("wss","https"),
+            "WEBSOCKET_API_ENDPOINT" : props.wsApiEndpoint.replace("wss","https"),
             "INDEX_ID" : props.kendraIndex.attrId,
             "PROMPT" : `You are an AI chatbot for the RIDE, an MBTA paratransit service. You will help customer service representatives respond to user complaints and queries. 
             Answer questions based on your Knowledge and nothing more. Do not provide information outside of your given Context. Remember that RIDE Flex and RIDE are not the same service. 

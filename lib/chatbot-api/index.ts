@@ -25,17 +25,15 @@ export interface ChatBotApiProps {
 }
 
 export class ChatBotApi extends Construct {
+  /* Expose APIs to include endpoints in aws-exports.json*/
   public readonly httpAPI: RestBackendAPI;
   public readonly wsAPI: WebsocketBackendAPI;
 
+  /* Expose these functions in order to create alarms for them */
   public readonly chatFunction : lambda.Function;
   public readonly sessionFunction : lambda.Function;
   public readonly feedbackFunction : lambda.Function;  
   public readonly zendeskSyncFunction : lambda.Function;
-  // public readonly byUserIdIndex: string;
-  // public readonly filesBucket: s3.Bucket;
-  // public readonly userFeedbackBucket: s3.Bucket;
-  // public readonly wsAPI: apigwv2.WebSocketApi;
 
   constructor(scope: Construct, id: string, props: ChatBotApiProps) {
     super(scope, id);
@@ -106,8 +104,6 @@ export class ChatBotApi extends Construct {
     })
 
     // SESSION_HANDLER
-    // lambdaFunctions.chatFunction.addEnvironment(
-    //   "mvp_user_session_handler_api_gateway_endpoint", restBackend.restAPI.apiEndpoint + "/user-session")
     lambdaFunctions.chatFunction.addEnvironment(
       "SESSION_HANDLER", lambdaFunctions.sessionFunction.functionName)
     

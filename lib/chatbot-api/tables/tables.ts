@@ -37,6 +37,7 @@ export class TableStack extends Stack {
       projectionType: ProjectionType.ALL,
     });
 
+    /* Add a global secondary index that allows for indexing feedback on any category */
     userFeedbackTable.addGlobalSecondaryIndex({
       indexName: 'AnyIndex',
       partitionKey: { name: 'Any', type: AttributeType.STRING },
