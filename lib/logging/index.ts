@@ -20,6 +20,11 @@ export class LoggingStack extends Construct {
     super(scope, id);
     
     /* Filters */
+    /** WARNING: Do not attempt to modify these values after deployment.
+     * CloudFormation may throw errors in certain cases if you attempt to do so, potentially 
+     * destroying your entire stack/requiring manual resolution. You may add NEW filters/alarms,
+     * but do not modify existing filters post-deployment. 
+     */
     const feedbackDDBFilter = props.feedbackFunction.logGroup.addMetricFilter("FeedbackHandlerDDBFilter", {      
       metricNamespace: 'Feedback Handler',
       metricName: 'DynamoDB Errors',
@@ -164,9 +169,7 @@ export class LoggingStack extends Construct {
     // add this topic to each alarm
     alarms.forEach((value) => {
       value.addAlarmAction(new actions.SnsAction(alertTopic))
-    })
-        
-
+    })      
 
   }
 }
