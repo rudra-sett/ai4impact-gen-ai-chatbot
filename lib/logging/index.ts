@@ -23,7 +23,8 @@ export class LoggingStack extends Construct {
     const feedbackDDBFilter = props.feedbackFunction.logGroup.addMetricFilter("FeedbackHandlerDDBFilter", {      
       metricNamespace: 'Feedback Handler',
       metricName: 'DynamoDB Errors',
-      filterPattern: logs.FilterPattern.anyTerm('DynamoDB'),      
+      filterPattern: logs.FilterPattern.anyTerm('DynamoDB'),  
+      // defaultValue: 0    
     })    
 
     /*const feedbackAdminFilter = props.feedbackFunction.logGroup.addMetricFilter("FeedbackHandlerAdminFilter", {      
@@ -36,37 +37,43 @@ export class LoggingStack extends Construct {
       metricNamespace: 'Session Handler',
       metricName: 'DynamoDB Errors',
       filterPattern: logs.FilterPattern.anyTerm('DynamoDB'),      
+      // defaultValue: 0
     })
     
 
     const chatModelInvokeFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerInvokeFilter", {      
       metricNamespace: 'Chat Handler',
       metricName: 'Model Invoke Errors',
-      filterPattern: logs.FilterPattern.anyTerm('invoke error'),      
+      filterPattern: logs.FilterPattern.anyTerm('invoke error'),  
+      // defaultValue: 0    
     })
 
     const chatModelKendraRelevancyFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRelevancyFilter", {      
       metricNamespace: 'Chat Handler',
       metricName: 'Kendra Relevancy Errors',
-      filterPattern: logs.FilterPattern.anyTerm('no relevant sources'),      
+      filterPattern: logs.FilterPattern.anyTerm('no relevant sources'), 
+      // defaultValue: 0     
     })
 
     const chatModelKendraRetrieveFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRetrieveFilter", {      
       metricNamespace: 'Chat Handler',
       metricName: 'Kendra Retrieval Errors',
-      filterPattern: logs.FilterPattern.anyTerm('could not retreive'),      
+      filterPattern: logs.FilterPattern.anyTerm('could not retreive'),    
+      // defaultValue: 0  
     })
 
     const zendeskCrawlFilter = props.zendeskFunction.logGroup.addMetricFilter("ZendeskCrawlFilter", {      
       metricNamespace: 'Zendesk Sync',
       metricName: 'Crawl Errors',
-      filterPattern: logs.FilterPattern.anyTerm('crawl error'),      
+      filterPattern: logs.FilterPattern.anyTerm('crawl error'),     
+      // defaultValue: 0 
     })
 
     const zendeskSyncFilter = props.zendeskFunction.logGroup.addMetricFilter("ZendeskSyncFilter", {      
       metricNamespace: 'Zendesk Sync',
       metricName: 'Kendra Sync Errors',
-      filterPattern: logs.FilterPattern.anyTerm('Kendra sync error'),      
+      filterPattern: logs.FilterPattern.anyTerm('Kendra sync error'),  
+      // defaultValue: 0    
     })
 
     /* Alarms */
@@ -77,7 +84,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 100,
       evaluationPeriods: 1,
-      metric: feedbackDDBFilter.metric()
+      metric: feedbackDDBFilter.metric({statistic : "sum"}),
     });
     alarms.push(feedbackHandlerDDBAlarm)
 
@@ -85,7 +92,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 10,
       evaluationPeriods: 1,
-      metric: feedbackAdminFilter.metric()
+      metric: feedbackAdminFilter.metric({statistic : "sum"})
     });
     alarms.push(feedbackHandlerAdminAlarm)*/
 
@@ -93,7 +100,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 100,
       evaluationPeriods: 1,
-      metric: sessionsDDBFilter.metric()
+      metric: sessionsDDBFilter.metric({statistic : "sum"})
     });    
     alarms.push(sessionHandlerDDBAlarm)
 
@@ -101,7 +108,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 100,
       evaluationPeriods: 1,
-      metric: chatModelInvokeFilter.metric()
+      metric: chatModelInvokeFilter.metric({statistic : "sum"})
     });
     alarms.push(chatHandlerInvokeAlarm)
 
@@ -109,7 +116,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 100,
       evaluationPeriods: 1,
-      metric: chatModelKendraRelevancyFilter.metric()
+      metric: chatModelKendraRelevancyFilter.metric({statistic : "sum"})
     });
     alarms.push(chatHandlerRelevancyAlarm)
 
@@ -117,7 +124,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 100,
       evaluationPeriods: 1,
-      metric: chatModelKendraRetrieveFilter.metric()
+      metric: chatModelKendraRetrieveFilter.metric({statistic : "sum"})
     });
     alarms.push(chatHandlerRetrieveAlarm)
     
@@ -125,7 +132,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 2,
       evaluationPeriods: 1,
-      metric: zendeskCrawlFilter.metric()
+      metric: zendeskCrawlFilter.metric({statistic : "sum"})
     });
     alarms.push(zendeskCrawlAlarm)
 
@@ -133,7 +140,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 2,
       evaluationPeriods: 1,
-      metric: zendeskSyncFilter.metric()
+      metric: zendeskSyncFilter.metric({statistic : "sum"})
     });
     alarms.push(zendeskSyncAlarm)
 
