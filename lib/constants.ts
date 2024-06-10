@@ -10,3 +10,7 @@ export const cognitoDomainName = "genaimvp-auth"
 export const OIDCIntegrationName = "Azure-OIDC"
 // this MUST be unique to your account
 export const stackName = "GenAiChatStack"
+// include a list of emails you want error alerts to be sent to
+// these alerts will be sent when a large number of errors occur at once, indicating immediate need
+// for attention
+export const alertEmails = ["sett.r@ai4impact.ai"]
