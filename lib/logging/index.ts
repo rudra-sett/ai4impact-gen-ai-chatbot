@@ -24,7 +24,7 @@ export class LoggingStack extends Construct {
       metricNamespace: 'Feedback Handler',
       metricName: 'DynamoDB Errors',
       filterPattern: logs.FilterPattern.anyTerm('DynamoDB'),  
-      defaultValue: 0    
+      // defaultValue: 0    
     })    
 
     /*const feedbackAdminFilter = props.feedbackFunction.logGroup.addMetricFilter("FeedbackHandlerAdminFilter", {      
@@ -45,35 +45,35 @@ export class LoggingStack extends Construct {
       metricNamespace: 'Chat Handler',
       metricName: 'Model Invoke Errors',
       filterPattern: logs.FilterPattern.anyTerm('invoke error'),  
-      defaultValue: 0    
+      // defaultValue: 0    
     })
 
     const chatModelKendraRelevancyFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRelevancyFilter", {      
       metricNamespace: 'Chat Handler',
       metricName: 'Kendra Relevancy Errors',
       filterPattern: logs.FilterPattern.anyTerm('no relevant sources'), 
-      defaultValue: 0     
+      // defaultValue: 0     
     })
 
     const chatModelKendraRetrieveFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRetrieveFilter", {      
       metricNamespace: 'Chat Handler',
       metricName: 'Kendra Retrieval Errors',
       filterPattern: logs.FilterPattern.anyTerm('could not retreive'),    
-      defaultValue: 0  
+      // defaultValue: 0  
     })
 
     const zendeskCrawlFilter = props.zendeskFunction.logGroup.addMetricFilter("ZendeskCrawlFilter", {      
       metricNamespace: 'Zendesk Sync',
       metricName: 'Crawl Errors',
       filterPattern: logs.FilterPattern.anyTerm('crawl error'),     
-      defaultValue: 0 
+      // defaultValue: 0 
     })
 
     const zendeskSyncFilter = props.zendeskFunction.logGroup.addMetricFilter("ZendeskSyncFilter", {      
       metricNamespace: 'Zendesk Sync',
       metricName: 'Kendra Sync Errors',
       filterPattern: logs.FilterPattern.anyTerm('Kendra sync error'),  
-      defaultValue: 0    
+      // defaultValue: 0    
     })
 
     /* Alarms */
