@@ -24,7 +24,7 @@ export class LoggingStack extends Construct {
       metricNamespace: 'Feedback Handler',
       metricName: 'DynamoDB Errors',
       filterPattern: logs.FilterPattern.anyTerm('DynamoDB'),  
-      // defaultValue: 0    
+      defaultValue: 0    
     })    
 
     /*const feedbackAdminFilter = props.feedbackFunction.logGroup.addMetricFilter("FeedbackHandlerAdminFilter", {      
@@ -37,7 +37,7 @@ export class LoggingStack extends Construct {
       metricNamespace: 'Session Handler',
       metricName: 'DynamoDB Errors',
       filterPattern: logs.FilterPattern.anyTerm('DynamoDB'),      
-      // defaultValue: 0
+      defaultValue: 0
     })
     
 
@@ -45,35 +45,35 @@ export class LoggingStack extends Construct {
       metricNamespace: 'Chat Handler',
       metricName: 'Model Invoke Errors',
       filterPattern: logs.FilterPattern.anyTerm('invoke error'),  
-      // defaultValue: 0    
+      defaultValue: 0    
     })
 
     const chatModelKendraRelevancyFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRelevancyFilter", {      
       metricNamespace: 'Chat Handler',
       metricName: 'Kendra Relevancy Errors',
       filterPattern: logs.FilterPattern.anyTerm('no relevant sources'), 
-      // defaultValue: 0     
+      defaultValue: 0     
     })
 
     const chatModelKendraRetrieveFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRetrieveFilter", {      
       metricNamespace: 'Chat Handler',
       metricName: 'Kendra Retrieval Errors',
       filterPattern: logs.FilterPattern.anyTerm('could not retreive'),    
-      // defaultValue: 0  
+      defaultValue: 0  
     })
 
     const zendeskCrawlFilter = props.zendeskFunction.logGroup.addMetricFilter("ZendeskCrawlFilter", {      
       metricNamespace: 'Zendesk Sync',
       metricName: 'Crawl Errors',
       filterPattern: logs.FilterPattern.anyTerm('crawl error'),     
-      // defaultValue: 0 
+      defaultValue: 0 
     })
 
     const zendeskSyncFilter = props.zendeskFunction.logGroup.addMetricFilter("ZendeskSyncFilter", {      
       metricNamespace: 'Zendesk Sync',
       metricName: 'Kendra Sync Errors',
       filterPattern: logs.FilterPattern.anyTerm('Kendra sync error'),  
-      // defaultValue: 0    
+      defaultValue: 0    
     })
 
     /* Alarms */
@@ -82,7 +82,7 @@ export class LoggingStack extends Construct {
 
     const feedbackHandlerDDBAlarm = new cloudwatch.Alarm(this, 'FeedbackHandlerDDBAlarm', {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
-      threshold: 100,
+      threshold: 20,
       evaluationPeriods: 1,
       metric: feedbackDDBFilter.metric({statistic : "sum"}),
     });
@@ -98,7 +98,7 @@ export class LoggingStack extends Construct {
 
     const sessionHandlerDDBAlarm = new cloudwatch.Alarm(this, 'SessionHandlerDDBAlarm', {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
-      threshold: 100,
+      threshold: 20,
       evaluationPeriods: 1,
       metric: sessionsDDBFilter.metric({statistic : "sum"})
     });    
@@ -106,7 +106,7 @@ export class LoggingStack extends Construct {
 
     const chatHandlerInvokeAlarm = new cloudwatch.Alarm(this, 'ChatHandlerInvokeAlarm', {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
-      threshold: 100,
+      threshold: 20,
       evaluationPeriods: 1,
       metric: chatModelInvokeFilter.metric({statistic : "sum"})
     });
@@ -114,7 +114,7 @@ export class LoggingStack extends Construct {
 
     const chatHandlerRelevancyAlarm = new cloudwatch.Alarm(this, 'ChatHandlerRelevanceAlarm', {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
-      threshold: 100,
+      threshold: 20,
       evaluationPeriods: 1,
       metric: chatModelKendraRelevancyFilter.metric({statistic : "sum"})
     });
@@ -122,7 +122,7 @@ export class LoggingStack extends Construct {
 
     const chatHandlerRetrieveAlarm = new cloudwatch.Alarm(this, 'ChatHandlerRetrivalAlarm', {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
-      threshold: 100,
+      threshold: 20,
       evaluationPeriods: 1,
       metric: chatModelKendraRetrieveFilter.metric({statistic : "sum"})
     });
