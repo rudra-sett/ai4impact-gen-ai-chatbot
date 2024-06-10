@@ -84,6 +84,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 20,
       evaluationPeriods: 1,
+      alarmDescription : "Activates when user feedback handling (adding, updating, loading, etc.) is not functioning correctly.",
       metric: feedbackDDBFilter.metric({statistic : "sum"}),
     });
     alarms.push(feedbackHandlerDDBAlarm)
@@ -100,6 +101,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 20,
       evaluationPeriods: 1,
+      alarmDescription : "Activates when user session handling (adding, updating, loading, etc.) is not functioning correctly.",
       metric: sessionsDDBFilter.metric({statistic : "sum"})
     });    
     alarms.push(sessionHandlerDDBAlarm)
@@ -108,6 +110,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 20,
       evaluationPeriods: 1,
+      alarmDescription : "Activates when chat functionality is not working.",
       metric: chatModelInvokeFilter.metric({statistic : "sum"})
     });
     alarms.push(chatHandlerInvokeAlarm)
@@ -116,6 +119,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 20,
       evaluationPeriods: 1,
+      alarmDescription : "Activates when Kendra repeatedly retrieves irrelevant data.",
       metric: chatModelKendraRelevancyFilter.metric({statistic : "sum"})
     });
     alarms.push(chatHandlerRelevancyAlarm)
@@ -124,6 +128,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 20,
       evaluationPeriods: 1,
+      alarmDescription : "Activates when Kendra is repeatedly unable to retrieve any data.",
       metric: chatModelKendraRetrieveFilter.metric({statistic : "sum"})
     });
     alarms.push(chatHandlerRetrieveAlarm)
@@ -132,6 +137,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 2,
       evaluationPeriods: 1,
+      alarmDescription : "Activates when Zendesk crawling is not working.",
       metric: zendeskCrawlFilter.metric({statistic : "sum"})
     });
     alarms.push(zendeskCrawlAlarm)
@@ -140,6 +146,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 2,
       evaluationPeriods: 1,
+      alarmDescription : "Activates when Kendra is unable to sync with Zendesk data.",
       metric: zendeskSyncFilter.metric({statistic : "sum"})
     });
     alarms.push(zendeskSyncAlarm)
