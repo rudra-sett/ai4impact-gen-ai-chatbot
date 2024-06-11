@@ -93,6 +93,8 @@ def post_feedback(event):
         
     
 def download_feedback(event):
+
+    # load parameters
     data = json.loads(event['body'])
     start_time = data.get('startTime')
     end_time = data.get('endTime')
@@ -106,6 +108,7 @@ def download_feedback(event):
     
     response = None
 
+    # if topic is any, use the appropriate index
     if not topic or topic=="any":                
         query_kwargs = {
             'IndexName': 'AnyIndex',
@@ -115,12 +118,25 @@ def download_feedback(event):
         query_kwargs = {
             'KeyConditionExpression': Key('CreatedAt').between(start_time, end_time) & Key('Topic').eq(topic),            
         }   
-    response = table.query(**query_kwargs)
 
-    print(query_kwargs)
-    # Query the DynamoDB table with pagination support
-    response = table.query(**query_kwargs)
-    print(response)
+    try:
+        response = table.query(**query_kwargs)
+    except Exception as e:
+        print("Caught error: DynamoDB error - could not load feedback for download")
+        return {
+            'headers': {
+                'Access-Control-Allow-Origin': "*"
+            },
+            'statusCode': 500,
+            'body': json.dumps('Failed to retrieve feedback for download: ' + str(e))
+        }
+    
+    
+    def clean_csv(field):
+        print("working")
+        field = str(field).replace('"', '""')
+        field = field.replace('\n','').replace(',', '')
+        return f'{field}'
     
     csv_content = "FeedbackID, SessionID, UserPrompt, FeedbackComment, Topic, Problem, Feedback, ChatbotMessage, CreatedAt\n"
     
@@ -130,12 +146,22 @@ def download_feedback(event):
         
     s3 = boto3.client('s3')
     S3_DOWNLOAD_BUCKET = os.environ["FEEDBACK_S3_DOWNLOAD"]
-    file_name = f"feedback-{start_time}-{end_time}.csv"
-    s3.put_object(Bucket=S3_DOWNLOAD_BUCKET, Key=file_name, Body=csv_content)
-    
-    presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': S3_DOWNLOAD_BUCKET, 'Key': file_name}, ExpiresIn=3600)
-    
-    return{
+
+    try:
+        file_name = f"feedback-{start_time}-{end_time}.csv"
+        s3.put_object(Bucket=S3_DOWNLOAD_BUCKET, Key=file_name, Body=csv_content)
+        presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': S3_DOWNLOAD_BUCKET, 'Key': file_name}, ExpiresIn=3600)
+
+    except Exception as e:
+        print("Caught error: S3 error - could not generate download link")
+        return {
+            'headers': {
+                'Access-Control-Allow-Origin': "*"
+            },
+            'statusCode': 500,
+            'body': json.dumps('Failed to retrieve feedback for download: ' + str(e))
+        }
+    return {
         'headers': {
                 'Access-Control-Allow-Origin': "*"
             },
@@ -156,6 +182,7 @@ def get_feedback(event):
         # Prepare the query parameters
         query_kwargs = {
             'KeyConditionExpression': Key('CreatedAt').between(start_time, end_time) & Key('Topic').eq(topic),
+            'ScanIndexForward' : False,
             'Limit' : 10
         }
         
@@ -164,29 +191,14 @@ def get_feedback(event):
         if exclusive_start_key:
             query_kwargs['ExclusiveStartKey'] = json.loads(exclusive_start_key)
         
-        if not topic or topic=="any":
-            # query_kwargs['IndexName'] = 'CreatedAtIndex'
-            # # query_kwargs['KeyConditionExpression'] = Key('CreatedAt').between(start_time, end_time)
-            # del query_kwargs['KeyConditionExpression']
-            # query_kwargs["FilterExpression"]=Attr('CreatedAt').between(start_time, end_time)
-
-            # response = table.scan(**query_kwargs)
-            query_kwargs = {
-            'IndexName': 'AnyIndex',
-            'KeyConditionExpression': Key('Any').eq("ANY") & Key('CreatedAt').between(start_time, end_time),            
-            }
-        # else:
-        response = table.query(**query_kwargs)
-        # print(query_kwargs)
-        # Query the DynamoDB table with pagination support
+        if not topic or topic=="any":            
+            query_kwargs["IndexName"] = 'AnyIndex'
+            query_kwargs["KeyConditionExpression"] =  Key('Any').eq("YES") & Key('CreatedAt').between(start_time, end_time),                        
         
-        # print(response)
-    
-        # Prepare the response body, including the pagination token if there's more data
-        # response['Items'].sort(key=lambda x: x['CreatedAt'])
+        response = table.query(**query_kwargs)
+        
         body = {
-            'Items':  response['Items'],
-            # 'LastEvaluatedKey': response.get('LastEvaluatedKey')
+            'Items':  response['Items'],            
         }
         
         if 'LastEvaluatedKey' in response:
@@ -247,25 +259,3 @@ def delete_feedback(event):
             'statusCode': 500,
             'body': json.dumps('Failed to delete feedback: ' + str(e))
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
