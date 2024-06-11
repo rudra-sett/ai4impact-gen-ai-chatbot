@@ -177,23 +177,26 @@ def get_feedback(event):
         start_time = query_params.get('startTime')
         end_time = query_params.get('endTime')
         topic = query_params.get('topic')
-        exclusive_start_key = query_params.get('nextPageToken')  # Pagination token
+        exclusive_start_key = query_params.get('nextPageToken')  # Pagination token        
+        
+        response = None        
+        
+        if not topic or topic=="any":        
+            query_kwargs = {
+                'IndexName' : 'AnyIndex',
+                'KeyConditionExpression': Key('Any').eq("YES") & Key('CreatedAt').between(start_time, end_time),
+                'ScanIndexForward' : False,
+                'Limit' : 10
+            } 
+        else:
+            query_kwargs = {
+                'KeyConditionExpression': Key('CreatedAt').between(start_time, end_time) & Key('Topic').eq(topic),
+                'ScanIndexForward' : False,
+                'Limit' : 10
+            }
 
-        # Prepare the query parameters
-        query_kwargs = {
-            'KeyConditionExpression': Key('CreatedAt').between(start_time, end_time) & Key('Topic').eq(topic),
-            'ScanIndexForward' : False,
-            'Limit' : 10
-        }
-        
-        response = None
-        
         if exclusive_start_key:
             query_kwargs['ExclusiveStartKey'] = json.loads(exclusive_start_key)
-        
-        if not topic or topic=="any":            
-            query_kwargs["IndexName"] = 'AnyIndex'
-            query_kwargs["KeyConditionExpression"] =  Key('Any').eq("YES") & Key('CreatedAt').between(start_time, end_time),                        
         
         response = table.query(**query_kwargs)
         
