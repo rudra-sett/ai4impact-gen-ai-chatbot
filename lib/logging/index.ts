@@ -21,25 +21,25 @@ export class LoggingStack extends Construct {
   constructor(scope: Construct, id: string, props: LoggingStackProps) {
     super(scope, id);
     
-    new triggers.Trigger(this, 'chatTrigger', {
+    const chatTrigger = new triggers.Trigger(this, 'chatTrigger', {
       handler: props.chatFunction,
       timeout: cdk.Duration.minutes(1),
       invocationType: triggers.InvocationType.EVENT,
     });
 
-    new triggers.Trigger(this, 'feedbackTrigger', {
+    const feedbackTrigger = new triggers.Trigger(this, 'feedbackTrigger', {
       handler: props.feedbackFunction,
       timeout: cdk.Duration.minutes(1),
       invocationType: triggers.InvocationType.EVENT,
     });
 
-    new triggers.Trigger(this, 'sessionTrigger', {
+    const sessionTrigger = new triggers.Trigger(this, 'sessionTrigger', {
       handler: props.sessionFunction,
       timeout: cdk.Duration.minutes(1),
       invocationType: triggers.InvocationType.EVENT,
     });
 
-    new triggers.Trigger(this, 'zendeskTrigger', {
+    const zendeskTrigger = new triggers.Trigger(this, 'zendeskTrigger', {
       handler: props.zendeskFunction,
       timeout: cdk.Duration.minutes(1),
       invocationType: triggers.InvocationType.EVENT,
@@ -58,6 +58,7 @@ export class LoggingStack extends Construct {
       defaultValue: 0    
     })    
 
+    feedbackDDBFilter.node.addDependency(feedbackTrigger);
     /*const feedbackAdminFilter = props.feedbackFunction.logGroup.addMetricFilter("FeedbackHandlerAdminFilter", {      
       metricNamespace: 'Feedback Handler',
       metricName: 'Admin Access Errors',
@@ -71,6 +72,7 @@ export class LoggingStack extends Construct {
       defaultValue: 0
     })
     
+    sessionsDDBFilter.node.addDependency(sessionTrigger);
 
     const chatModelInvokeFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerInvokeFilter", {      
       metricNamespace: 'Chat Handler',
@@ -79,12 +81,16 @@ export class LoggingStack extends Construct {
       defaultValue: 0    
     })
 
+    chatModelInvokeFilter.node.addDependency(chatTrigger);
+
     const chatModelKendraRelevancyFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRelevancyFilter", {      
       metricNamespace: 'Chat Handler',
       metricName: 'Kendra Relevancy Errors',
       filterPattern: logs.FilterPattern.anyTerm('no relevant sources'), 
       defaultValue: 0     
     })
+
+    chatModelKendraRelevancyFilter.node.addDependency(chatTrigger);
 
     const chatModelKendraRetrieveFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRetrieveFilter", {      
       metricNamespace: 'Chat Handler',
@@ -93,6 +99,8 @@ export class LoggingStack extends Construct {
       defaultValue: 0  
     })
 
+    chatModelKendraRetrieveFilter.node.addDependency(chatTrigger);
+
     const zendeskCrawlFilter = props.zendeskFunction.logGroup.addMetricFilter("ZendeskCrawlFilter", {      
       metricNamespace: 'Zendesk Sync',
       metricName: 'Crawl Errors',
@@ -100,12 +108,16 @@ export class LoggingStack extends Construct {
       defaultValue: 0 
     })
 
+    zendeskCrawlFilter.node.addDependency(zendeskTrigger)
+
     const zendeskSyncFilter = props.zendeskFunction.logGroup.addMetricFilter("ZendeskSyncFilter", {      
       metricNamespace: 'Zendesk Sync',
       metricName: 'Kendra Sync Errors',
       filterPattern: logs.FilterPattern.anyTerm('Kendra sync error'),  
       defaultValue: 0    
     })
+
+    zendeskSyncFilter.node.addDependency(zendeskTrigger)
 
     /* Alarms */
 
