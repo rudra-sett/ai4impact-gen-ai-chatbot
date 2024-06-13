@@ -5,6 +5,8 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as actions from "aws-cdk-lib/aws-cloudwatch-actions";
+import * as triggers from 'aws-cdk-lib/triggers';
+
 import { alertEmails } from '../constants';
 
 export interface LoggingStackProps {
@@ -19,6 +21,30 @@ export class LoggingStack extends Construct {
   constructor(scope: Construct, id: string, props: LoggingStackProps) {
     super(scope, id);
     
+    new triggers.Trigger(this, 'chatTrigger', {
+      handler: props.chatFunction,
+      timeout: cdk.Duration.minutes(1),
+      invocationType: triggers.InvocationType.EVENT,
+    });
+
+    new triggers.Trigger(this, 'feedbackTrigger', {
+      handler: props.feedbackFunction,
+      timeout: cdk.Duration.minutes(1),
+      invocationType: triggers.InvocationType.EVENT,
+    });
+
+    new triggers.Trigger(this, 'sessionTrigger', {
+      handler: props.sessionFunction,
+      timeout: cdk.Duration.minutes(1),
+      invocationType: triggers.InvocationType.EVENT,
+    });
+
+    new triggers.Trigger(this, 'zendeskTrigger', {
+      handler: props.zendeskFunction,
+      timeout: cdk.Duration.minutes(1),
+      invocationType: triggers.InvocationType.EVENT,
+    });
+
     /* Filters */
     /** WARNING: Do not attempt to modify these values after deployment.
      * CloudFormation may throw errors in certain cases if you attempt to do so, potentially 
