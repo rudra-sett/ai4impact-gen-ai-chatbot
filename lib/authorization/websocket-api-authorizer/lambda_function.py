@@ -2,6 +2,7 @@ import json
 from jose import jwt, jwk
 from jose.utils import base64url_decode
 import requests
+import time
 import os
 
 def lambda_handler(event, context):
@@ -27,13 +28,36 @@ def lambda_handler(event, context):
 
     # Validate the token
     try:
-        claims = jwt.decode(token, public_key, algorithms=['RS256'], audience=app_client_id)
-        print(claims)
+        message, encoded_signature = str(token).rsplit('.', 1)
+        
+        # decode the signature
+        decoded_signature = base64url_decode(encoded_signature.encode('utf-8'))
+
+        # verify the signature
+        if not public_key.verify(message.encode("utf8"), decoded_signature):
+            print('Signature verification failed')
+            raise Exception("Failed")
+        print('Signature successfully verified')
+
+        claims = jwt.get_unverified_claims(token)
+        
+        # additionally we can verify the token expiration
+        if time.time() > claims['exp']:
+            print('Token is expired')
+            raise Exception("Expired")
+        
+        # and the Audience  (use claims['client_id'] if verifying an access token)
+        if claims['aud'] != app_client_id:
+            print('Token was not issued for this audience')
+            raise Exception("Wrong audience")
+                
         principalId = claims['sub']
+        role = claims.get('custom:role','')
 
         # Generate policy document
         policy_document = {
             'principalId': principalId,
+            'context' : {"role" : role},
             'policyDocument': {
                 'Version': '2012-10-17',
                 'Statement': [{
@@ -42,8 +66,7 @@ def lambda_handler(event, context):
                     'Resource': event['methodArn']
                 }]
             }
-        }
-
+        }        
         return policy_document
     except Exception as e:
         print(f'Token validation error: {str(e)}')
