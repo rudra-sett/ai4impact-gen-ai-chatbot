@@ -16,6 +16,7 @@ import { WebSocketLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integra
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { WebSocketLambdaAuthorizer, HttpUserPoolAuthorizer, HttpJwtAuthorizer  } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { aws_apigatewayv2 as apigwv2 } from "aws-cdk-lib";
+import * as triggers from 'aws-cdk-lib/triggers';
 import { Construct } from "constructs";
 
 // import { NagSuppressions } from "cdk-nag";
@@ -172,64 +173,29 @@ export class ChatBotApi extends Construct {
       authorizer: httpAuthorizer,
     })
     
+    const chatTrigger = new triggers.Trigger(this, 'chatTrigger', {
+      handler: this.chatFunction,
+      timeout: cdk.Duration.minutes(1),
+      invocationType: triggers.InvocationType.EVENT,
+    });
 
+    const feedbackTrigger = new triggers.Trigger(this, 'feedbackTrigger', {
+      handler: this.feedbackFunction,
+      timeout: cdk.Duration.minutes(1),
+      invocationType: triggers.InvocationType.EVENT,
+    });
 
-      // this.wsAPI = websocketBackend.wsAPI;
+    const sessionTrigger = new triggers.Trigger(this, 'sessionTrigger', {
+      handler: this.sessionFunction,
+      timeout: cdk.Duration.minutes(1),
+      invocationType: triggers.InvocationType.EVENT,
+    });
 
-
-
-
-    // const api = new appsync.GraphqlApi(this, "ChatbotApi", {
-    //   name: "ChatbotGraphqlApi",
-    //   definition: appsync.Definition.fromFile(
-    //     path.join(__dirname, "schema/schema.graphql")
-    //   ),
-    //   authorizationConfig: {
-    //     additionalAuthorizationModes: [
-    //       {
-    //         authorizationType: appsync.AuthorizationType.IAM,
-    //       },
-    //       {
-    //         authorizationType: appsync.AuthorizationType.USER_POOL,
-    //         userPoolConfig: {
-    //           userPool: props.userPool,
-    //         },
-    //       },
-    //     ],
-    //   },
-    //   logConfig: {
-    //     fieldLogLevel: appsync.FieldLogLevel.ALL,
-    //     retention: RetentionDays.ONE_WEEK,
-    //     role: loggingRole,
-    //   },
-    //   xrayEnabled: true,
-    //   visibility: props.config.privateWebsite ? appsync.Visibility.PRIVATE : appsync.Visibility.GLOBAL
-    // });
-
-    // new ApiResolvers(this, "RestApi", {
-    //   ...props,
-    //   sessionsTable: chatTables.sessionsTable,
-    //   byUserIdIndex: chatTables.byUserIdIndex,
-    //   api,
-    //   userFeedbackBucket: chatBuckets.userFeedbackBucket,
-    // });
-
-    // const realtimeBackend = new RealtimeGraphqlApiBackend(this, "Realtime", {
-    //   ...props,
-    //   api,
-    // });
-
-    // realtimeBackend.resolvers.outgoingMessageHandler.addEnvironment(
-    //   "GRAPHQL_ENDPOINT",
-    //   api.graphqlUrl
-    // );
-
-    // api.grantMutation(realtimeBackend.resolvers.outgoingMessageHandler);
-
-    // // Prints out URL
-    // new cdk.CfnOutput(this, "GraphqlAPIURL", {
-    //   value: api.graphqlUrl,
-    // });
+    const zendeskTrigger = new triggers.Trigger(this, 'zendeskTrigger', {
+      handler: this.zendeskSyncFunction,
+      timeout: cdk.Duration.minutes(1),
+      invocationType: triggers.InvocationType.EVENT,
+    });
 
     // // Prints out the AppSync GraphQL API key to the terminal
     new cdk.CfnOutput(this, "WS-API - apiEndpoint", {
@@ -238,23 +204,6 @@ export class ChatBotApi extends Construct {
     new cdk.CfnOutput(this, "HTTP-API - apiEndpoint", {
       value: restBackend.restAPI.apiEndpoint || "",
     });
-
-    // this.messagesTopic = realtimeBackend.messagesTopic;
-    // this.sessionsTable = chatTables.sessionsTable;
-    // this.byUserIdIndex = chatTables.byUserIdIndex;
-    // this.userFeedbackBucket = chatBuckets.userFeedbackBucket;
-    // this.filesBucket = chatBuckets.filesBucket;
-    // this.graphqlApi = api;
-
-    /**
-     * CDK NAG suppression
-     */
-    // NagSuppressions.addResourceSuppressions(loggingRole, [
-    //   {
-    //     id: "AwsSolutions-IAM5",
-    //     reason:
-    //       "Access to all log groups required for CloudWatch log group creation.",
-    //   },
-    // ]);
+    
   }
 }
