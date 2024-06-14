@@ -1,4 +1,5 @@
 import os
+import re
 import requests
 import boto3
 from requests.auth import HTTPBasicAuth
@@ -19,6 +20,7 @@ def lambda_handler(event, context):
         data = requests.get(help_center_endpoint,auth=HTTPBasicAuth(username, password)).json()
     except:
         print("Caught error: Zendesk crawl error")
+        return
     for article in data["articles"]: 
         pages.append(article)
     next_page = data["next_page"]
@@ -29,6 +31,19 @@ def lambda_handler(event, context):
         next_page = data["next_page"]
         print(next_page)
     print("completed scan")
+    
+    
+    if os.environ.get("REMOVE_EMAILS", "FALSE") == "TRUE":
+        filtered_pages = []
+        for page in pages:
+            matches = re.findall(r'[\w.+-]+@[\w-]+\.[\w.-]+', page["body"])
+            filtered = page
+            for match in matches:
+                domain = match.split("@")[1]
+                filtered["body"] = re.sub(match,f'[EMAIL REDACTED, domain was {domain}]',filtered["body"])            
+        pages = filtered_pages
+    
+    
     s3 = boto3.client('s3')
     article_bucket = os.environ["ARTICLE_BUCKET"]    
     print("saving pages")

@@ -10,6 +10,8 @@ import * as kendra from 'aws-cdk-lib/aws-kendra';
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { aws_scheduler as scheduler } from 'aws-cdk-lib';
 
+import { removeZendeskEmails } from '../../constants';
+
 interface LambdaFunctionStackProps {  
   readonly wsApiEndpoint : string;  
   readonly sessionTable : Table;
@@ -236,6 +238,7 @@ export class LambdaFunctionStack extends cdk.Stack {
         "ARTICLE_BUCKET" : props.zendeskBucket.bucketName,
         "KENDRA" : props.kendraIndex.attrId,
         "SOURCE" : props.zendeskSource.attrId,
+        "REMOVE_EMAILS" : removeZendeskEmails,
         "USERNAME" : "PLACEHOLDER",
         "PASSWORD" : "PLACEHOLDER",
         "HELP_CENTER_ENDPOINT" : "PLACEHOLDER"    

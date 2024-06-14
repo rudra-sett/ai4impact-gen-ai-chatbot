@@ -14,3 +14,7 @@ export const stackName = "GenAiChatStack"
 // these alerts will be sent when a large number of errors occur at once, indicating immediate need
 // for attention
 export const alertEmails = ["sett.r@ai4impact.ai"]
+// optionally scrub all emails (but keep domains, i.e. mbta.com, transdev.com) from 
+// scraped zendesk documents
+// can be "TRUE" or "FALSE"
+export const removeZendeskEmails = "FALSE"
