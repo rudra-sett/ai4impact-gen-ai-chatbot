@@ -69,6 +69,7 @@ def post_feedback(event):
             'Problem': feedback_data.get("problem",''),
             'Feedback': feedback_data["feedback"],
             'ChatbotMessage': feedback_data['completion'],
+            'Sources' : feedback_data['sources'],
             'CreatedAt': timestamp,
             'Any' : "YES"
         }
