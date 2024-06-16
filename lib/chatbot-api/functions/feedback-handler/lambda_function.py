@@ -28,9 +28,10 @@ def lambda_handler(event, context):
             print("admin granted!")
             admin = True
         else:
-            print("not admin")
+            print("Caught error: attempted unauthorized admin access")
             admin = False
     except:
+        print("Caught error: admin access and user roles are not present")
         return {
                 'statusCode': 500,
                 'headers': {'Access-Control-Allow-Origin': '*'},
@@ -38,7 +39,7 @@ def lambda_handler(event, context):
             }
     http_method = event.get('routeKey')
     if 'POST' in http_method:
-        if event.get('rawPath') == '/user-feedback/download-feedback':
+        if event.get('rawPath') == '/user-feedback/download-feedback' and admin:
             return download_feedback(event)
         return post_feedback(event)
     elif 'GET' in http_method and admin:
@@ -75,6 +76,8 @@ def post_feedback(event):
         }
         # Put the item into the DynamoDB table
         table.put_item(Item=item)
+        if feedback_data["feedback"] == 0:
+            print("Negative feedback placed")
         return {
             'headers' : {
                 'Access-Control-Allow-Origin' : "*"
@@ -84,6 +87,7 @@ def post_feedback(event):
         }
     except Exception as e:
         print(e)
+        print("Caught error: DynamoDB error - could not add feedback")
         return {
             'headers' : {
                 'Access-Control-Allow-Origin' : "*"
@@ -101,19 +105,13 @@ def download_feedback(event):
     end_time = data.get('endTime')
     topic = data.get('topic')
         
-    # Prepare the query parameters
-    query_kwargs = {
-        'KeyConditionExpression': Key('CreatedAt').between(start_time, end_time) & Key('Topic').eq(topic),
-        'Limit' : 30
-    }
-    
     response = None
 
     # if topic is any, use the appropriate index
     if not topic or topic=="any":                
         query_kwargs = {
             'IndexName': 'AnyIndex',
-            'KeyConditionExpression': Key('Any').eq("ANY") & Key('CreatedAt').between(start_time, end_time)
+            'KeyConditionExpression': Key('Any').eq("YES") & Key('CreatedAt').between(start_time, end_time)
         }
     else:
         query_kwargs = {
@@ -142,9 +140,9 @@ def download_feedback(event):
     csv_content = "FeedbackID, SessionID, UserPrompt, FeedbackComment, Topic, Problem, Feedback, ChatbotMessage, CreatedAt\n"
     
     for item in response['Items']:
-        csv_content += f"{item['FeedbackID']}, {item['SessionID']}, {item['UserPrompt']}, {item['FeedbackComments']}, {item['Topic']}, {item['Problem']}, {item['Feedback']}, {item['ChatbotMessage']}, {item['CreatedAt']}\n"
-        
-        
+        csv_content += f"{clean_csv(item['FeedbackID'])}, {clean_csv(item['SessionID'])}, {clean_csv(item['UserPrompt'])}, {clean_csv(item['FeedbackComments'])}, {clean_csv(item['Topic'])}, {clean_csv(item['Problem'])}, {clean_csv(item['Feedback'])}, {clean_csv(item['ChatbotMessage'])}, {clean_csv(item['CreatedAt'])}\n"
+        print(csv_content)
+    
     s3 = boto3.client('s3')
     S3_DOWNLOAD_BUCKET = os.environ["FEEDBACK_S3_DOWNLOAD"]
 
@@ -216,6 +214,7 @@ def get_feedback(event):
             'body': json.dumps(body, cls=DecimalEncoder)
         }
     except Exception as e:
+        print("Caught error: DynamoDB error - could not get feedback")
         return {
             'headers': {
                 'Access-Control-Allow-Origin': "*"
@@ -255,7 +254,7 @@ def delete_feedback(event):
             'body': json.dumps({'message': 'Feedback deleted successfully'})
         }
     except Exception as e:
-        print(e)
+        print("Caught error: DynamoDB error - could not delete feedback")
         return {
             'headers': {
                 'Access-Control-Allow-Origin': '*'
