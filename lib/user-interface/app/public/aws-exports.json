@@ -1,0 +1,26 @@
+{
+  "httpEndpoint": "https://g16qwekzne.execute-api.us-east-1.amazonaws.com/",
+  "wsEndpoint": "wss://cwoluaiom8.execute-api.us-east-1.amazonaws.com/prod",
+  "federatedSignInProvider": "Azure-OIDC",
+  "Auth": {
+    "Cognito": {
+      "userPoolClientId": "6o3msm0s4ajfh3heu6i8mngl0c",
+      "userPoolId": "us-east-1_ajkIFLqgX",
+      "loginWith": {
+        "oauth": {
+          "domain": "genaimvp-auth.auth.us-east-1.amazoncognito.com",
+          "scopes": [
+            "openid email phone profile aws.cognito.signin.user.admin"
+          ],
+          "redirectSignIn": [
+            "http://localhost:3000/"
+          ],
+          "redirectSignOut" : [
+            "https://mbta.com"
+          ],
+          "responseType": "code"
+        }
+      }
+    }
+  }
+}
