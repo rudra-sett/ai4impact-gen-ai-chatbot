@@ -7,7 +7,8 @@ export const kendraIndexName = 'gen-ai-chatbot-index'
 export const cognitoDomainName = "genaimvp-auth"
 // this can be anything that would be understood easily, but you must use the same name
 // when setting up a sign-in provider in Cognito
-export const OIDCIntegrationName = "Azure-OIDC"
+// leave it empty if you do not have an OIDC provider, otherwise new users will not be able to sign in 
+export const OIDCIntegrationName = ""
 // this MUST be unique to your account
 export const stackName = "GenAiChatStack"
 // include a list of emails you want error alerts to be sent to
