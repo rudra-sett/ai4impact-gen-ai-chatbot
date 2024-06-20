@@ -12,7 +12,7 @@ import BaseAppLayout from "../../components/base-app-layout";
 import DocumentsTab from "./documents-tab";
 import { CHATBOT_NAME } from "../../common/constants";
 import { useState, useEffect, useContext } from "react";
-import { fetchAuthSession , signIn, signOut } from "aws-amplify/auth";
+import { Auth } from "aws-amplify";
 import DataFileUpload from "./file-upload-tab";
 import { ApiClient } from "../../common/api-client/api-client";
 import { AppContext } from "../../common/app-context";
@@ -40,13 +40,13 @@ export default function DataPage() {
   useEffect(() => {
     (async () => {
       try {
-        const result = await fetchAuthSession();
+        const result = await Auth.currentAuthenticatedUser();
         if (!result || Object.keys(result).length === 0) {
           console.log("Signed out!")
-          signOut();
+          Auth.signOut();
           return;
         }
-        const admin = result?.tokens?.idToken?.payload["custom:role"]
+        const admin = result?.signInUserSession?.idToken?.payload["custom:role"]
         if (admin) {
           const data = JSON.parse(admin);
           if (data.includes("Admin")) {

@@ -4,7 +4,7 @@ import {
   ChatBotMessageType,  
   FeedbackData
 } from "./types";
-import { getCurrentUser } from "aws-amplify/auth";
+import { Auth } from "aws-amplify";
 import { SpaceBetween, StatusIndicator, Alert, Flashbar } from "@cloudscape-design/components";
 import { v4 as uuidv4 } from "uuid";
 import { AppContext } from "../../common/app-context";
@@ -51,7 +51,7 @@ export default function Chat(props: { sessionId?: string, updateEmailFunction : 
       try {
         // const result = await apiClient.sessions.getSession(props.sessionId);
         let username;
-        await getCurrentUser().then((value) => username = value.username);
+        await Auth.currentAuthenticatedUser().then((value) => username = value.username);
         if (!username) return;
         const hist = await apiClient.sessions.getSession(props.sessionId,username);
 

@@ -1,4 +1,4 @@
-import { fetchAuthSession  } from 'aws-amplify/auth'
+import {Auth} from 'aws-amplify'
 export class Utils {
   // static isDevelopment() {
   //   return import.meta.env.MODE === "development";
@@ -136,14 +136,14 @@ export class Utils {
       // console.log('ID token:', currentSession.getAccessToken().getJwtToken());
       // console.log(Auth.currentSession())
       // console.log(await Auth.currentSession())
-      const currentSession = await fetchAuthSession();
+      const currentUser = await Auth.currentAuthenticatedUser()
       // currentUser.
       // console.log(currentUser);
       // console.log(currentSession);
       // token = 'Bearer ' + currentUser.signInUserSession.idToken.jwtToken
       
       // for some reason
-      token = currentSession.tokens.idToken //currentSession.getAccessToken().getJwtToken(); 
+      token = currentUser.signInUserSession.idToken.jwtToken //currentSession.getAccessToken().getJwtToken(); 
 
       // currentUser.idToken.jwtToken
       

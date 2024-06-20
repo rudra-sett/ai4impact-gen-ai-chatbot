@@ -1,26 +1,22 @@
 {
-  "httpEndpoint": "https://g16qwekzne.execute-api.us-east-1.amazonaws.com/",
-  "wsEndpoint": "wss://cwoluaiom8.execute-api.us-east-1.amazonaws.com/prod",
-  "federatedSignInProvider": "Azure-OIDC",
-  "Auth": {
-    "Cognito": {
-      "userPoolClientId": "6o3msm0s4ajfh3heu6i8mngl0c",
-      "userPoolId": "us-east-1_ajkIFLqgX",
-      "loginWith": {
-        "oauth": {
-          "domain": "genaimvp-auth.auth.us-east-1.amazoncognito.com",
-          "scopes": [
-            "openid email phone profile aws.cognito.signin.user.admin"
-          ],
-          "redirectSignIn": [
-            "http://localhost:3000/"
-          ],
-          "redirectSignOut" : [
-            "https://mbta.com"
-          ],
-          "responseType": "code"
-        }
-      }
+
+  "Auth":{"region":"us-east-1","userPoolId":"us-east-1_ajkIFLqgX","userPoolWebClientId":"6o3msm0s4ajfh3heu6i8mngl0c","oauth":{"domain":"genaimvp-auth.auth.us-east-1.amazoncognito.com","scope":["aws.cognito.signin.user.admin","email","openid","profile"],"redirectSignIn":"http://localhost:3000/","responseType":"code"}},"httpEndpoint":"https://g16qwekzne.execute-api.us-east-1.amazonaws.com/","wsEndpoint":"wss://cwoluaiom8.execute-api.us-east-1.amazonaws.com/prod","federatedSignInProvider":"Azure-OIDC",
+  "aws_appsync_graphqlEndpoint": "https://kein73egq5bcdc2q5jo2w27czi.appsync-api.us-east-1.amazonaws.com/graphql",
+  "aws_appsync_region": "us-east-1",
+  "aws_appsync_authenticationType": "AMAZON_COGNITO_USER_POOLS",
+  "aws_appsync_apiKey": "da2-xmvgv3oj7nbirja6eqyedu5chi",
+  "Storage": {
+    "AWSS3": {
+      "bucket": "testgenaichatbotstack-chatbotapichatbucketsfilesbu-bj1sdgxb48fl",
+      "region": "us-east-1"
     }
+  },
+  "config": {
+    "rag_enabled": true,
+    "cross_encoders_enabled": true,
+    "sagemaker_embeddings_enabled": false,
+    "default_embeddings_model": "sagemaker::1024::intfloat/multilingual-e5-large",
+    "default_cross_encoder_model": "sagemaker::cross-encoder/ms-marco-MiniLM-L-12-v2",
+    "privateWebsite": false
   }
 }

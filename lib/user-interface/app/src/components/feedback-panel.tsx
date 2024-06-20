@@ -1,6 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { useEffect } from 'react';
 import { Box, ColumnLayout, Container, ContentLayout, ExpandableSection, Header, Link, SpaceBetween, SplitPanel, TextContent, } from '@cloudscape-design/components';
+import { Auth } from 'aws-amplify';
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import styles from "../styles/chat.module.scss";
 
 export interface FeedbackPanelProps {
   selectedFeedback: any;

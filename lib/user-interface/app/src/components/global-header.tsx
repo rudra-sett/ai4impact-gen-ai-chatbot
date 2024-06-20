@@ -5,8 +5,7 @@ import {
 import { Mode } from "@cloudscape-design/global-styles";
 import { useEffect, useState } from "react";
 import { StorageHelper } from "../common/helpers/storage-helper";
-// import { Auth } from "aws-amplify";
-import { signIn, signOut, getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
+import { Auth } from "aws-amplify";
 import useOnFollow from "../common/hooks/use-on-follow";
 import { CHATBOT_NAME } from "../common/constants";
 
@@ -17,16 +16,16 @@ export default function GlobalHeader() {
 
   useEffect(() => {
     (async () => {
-      const result = await getCurrentUser()
+      const result = await Auth.currentAuthenticatedUser();    
       // console.log(result);  
       if (!result || Object.keys(result).length === 0) {
         console.log("Signed out!")
-        signOut();
+        Auth.signOut();
         return;
       }
 
       // const userName = result?.attributes?.email;
-      const userName = result?.username//.idToken?.payload?.name;
+      const userName = result?.signInUserSession?.idToken?.payload?.name;
       setUserName(userName);
     })();
   }, []);
@@ -44,7 +43,7 @@ export default function GlobalHeader() {
     detail: ButtonDropdownProps.ItemClickDetails;
   }) => {
     if (detail.id === "signout") {
-      signOut();
+      Auth.signOut();
     }
   };
 

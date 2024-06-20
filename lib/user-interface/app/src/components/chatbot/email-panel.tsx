@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useEffect, useContext } from 'react';
 import { Spinner, Container, ContentLayout, Header, Link, SplitPanel, Box } from '@cloudscape-design/components';
 import { ChatBotHistoryItem } from './types';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { Auth } from 'aws-amplify';
 import { assembleHistory } from './utils'
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -34,7 +34,7 @@ export default function EmailPanel(props: EmailPanelProps) {
       setLoading(true);
       console.log("generating email!")
       let username;
-      await getCurrentUser().then((value) => username = value.username);
+      await Auth.currentAuthenticatedUser().then((value) => username = value.username);
       if (!username) return;
 
       // const TEST_URL = 'wss://caoyb4x42c.execute-api.us-east-1.amazonaws.com/test/';

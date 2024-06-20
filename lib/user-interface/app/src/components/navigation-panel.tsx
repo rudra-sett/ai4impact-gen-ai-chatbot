@@ -14,7 +14,7 @@ import PencilSquareIcon from "../../public/images/pencil-square.jsx";
 import RouterButton from "../components/wrappers/router-button";
 import { useContext, useState, useEffect } from "react";
 import { ApiClient } from "../common/api-client/api-client";
-import { getCurrentUser, fetchAuthSession  } from "aws-amplify/auth";
+import { Auth } from "aws-amplify";
 import { v4 as uuidv4 } from "uuid";
 import {SessionRefreshContext} from "../common/session-refresh-context"
 import { useNotifications } from "../components/notif-manager";
@@ -42,7 +42,7 @@ export default function NavigationPanel() {
   const loadSessions = async () => {
     let username;
     try {
-    await getCurrentUser().then((value) => username = value.username);
+    await Auth.currentAuthenticatedUser().then((value) => username = value.username);
     if (username && needsRefresh) {           
       const fetchedSessions = await apiClient.sessions.getSessions(username);  
       await updateItems(fetchedSessions);
@@ -96,8 +96,8 @@ export default function NavigationPanel() {
       },      
     ];
     try {
-    const result = await fetchAuthSession ();
-    const admin = result?.tokens?.idToken?.payload["custom:role"]
+    const result = await Auth.currentAuthenticatedUser();
+    const admin = result?.signInUserSession?.idToken?.payload["custom:role"]
     if (admin) {
       const data = JSON.parse(admin);
       if (data.includes("Admin")) {

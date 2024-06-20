@@ -1,3 +1,6 @@
+import { SelectProps } from "@cloudscape-design/components";
+import { CognitoHostedUIIdentityProvider } from "@aws-amplify/auth";
+
 export interface AppConfig {
   Auth: {
         region: string,

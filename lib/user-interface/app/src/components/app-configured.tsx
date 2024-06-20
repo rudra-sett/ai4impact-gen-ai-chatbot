@@ -4,8 +4,7 @@ import {
   defaultDarkModeOverride,
 } from "@aws-amplify/ui-react";
 import App from "../app";
-import { signInWithRedirect, getCurrentUser } from "aws-amplify/auth";
-import { Amplify } from "aws-amplify"
+import { Amplify, Auth } from "aws-amplify";
 import { AppConfig } from "../common/types";
 import { AppContext } from "../common/app-context";
 import { Alert, StatusIndicator } from "@cloudscape-design/components";
@@ -20,22 +19,18 @@ export default function AppConfigured() {
   const [theme, setTheme] = useState(StorageHelper.getTheme());
   const [configured, setConfigured] = useState<boolean>(false);
 
-  // this is the authentication provider that Cognito needs
-  const federatedIdName: string = "AzureAD-OIDC-MassGov";
-
   // trigger authentication state when needed
   useEffect(() => {
     (async () => {
-      let currentConfig;
+      let currentConfig: AppConfig;
       try {
         const result = await fetch("/aws-exports.json");
         const awsExports = await result.json();
-        console.log(awsExports);
-        currentConfig = Amplify.configure(awsExports) //as AppConfig | null;
-        // const user = await getCurrentUser();
-        // if (user) {
-        //   setAuthenticated(true);
-        // }
+        currentConfig = Amplify.configure(awsExports) as AppConfig | null;
+        const user = await Auth.currentAuthenticatedUser();
+        if (user) {
+          setAuthenticated(true);
+        }
         setConfig(awsExports);
         setConfigured(true);
       } catch (e) {
@@ -44,9 +39,11 @@ export default function AppConfigured() {
         // but that is very unlikely
         console.error("Authentication check error:", e);
         try {
-          // Auth.federatedSignIn({ customProvider: currentConfig.federatedSignInProvider });
-          const provider = { custom : currentConfig.federatedSignInProvider}
-          signInWithRedirect({ provider })
+          if (currentConfig.federatedSignInProvider != "") {
+            Auth.federatedSignIn({ customProvider: currentConfig.federatedSignInProvider });
+          } else {
+            Auth.federatedSignIn();
+          }
         } catch (error) {
           // however, just in case, we'll add another try catch
           setError(true);
@@ -59,10 +56,11 @@ export default function AppConfigured() {
   useEffect(() => {
     if (!authenticated && configured) {
       console.log("No authenticated user, initiating sign-in.");
-      // Auth.federatedSignIn({ customProvider: config.federatedSignInProvider });
-      console.log(Amplify.getConfig())
-      const provider = { custom : config.federatedSignInProvider}
-      signInWithRedirect({ provider })
+      if (config.federatedSignInProvider != "") {
+        Auth.federatedSignIn({ customProvider: config.federatedSignInProvider });
+      } else {
+        Auth.federatedSignIn();
+      }
     }
   }, [authenticated, configured]);
 

@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
-import { getCurrentUser } from "aws-amplify/auth";
+import { Auth } from "aws-amplify";
 import TextareaAutosize from "react-textarea-autosize";
 import { ReadyState } from "react-use-websocket";
 import { ApiClient } from "../../common/api-client/api-client";
@@ -136,7 +136,7 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
     ChatScrollState.userHasScrolled = false;
 
     let username;
-    await getCurrentUser().then((value) => username = value.username);
+    await Auth.currentAuthenticatedUser().then((value) => username = value.username);
     if (!username) return;    
 
     const messageToSend = state.value.trim();

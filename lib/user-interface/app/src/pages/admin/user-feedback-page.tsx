@@ -16,7 +16,7 @@ import FeedbackTab from "./feedback-tab";
 import FeedbackPanel from "../../components/feedback-panel";
 import { CHATBOT_NAME } from "../../common/constants";
 import { useState, useEffect } from "react";
-import { fetchAuthSession , signIn, signOut } from "aws-amplify/auth";
+import { Auth } from "aws-amplify";
 
 
 export default function UserFeedbackPage() {
@@ -27,14 +27,17 @@ export default function UserFeedbackPage() {
   /** Check if the signed-in user is an admin */
   useEffect(() => {
     (async () => {
+      const result = await Auth.currentAuthenticatedUser();
+      // console.log(result);  
+      if (!result || Object.keys(result).length === 0) {
+        console.log("Signed out!")
+        Auth.signOut();
+        return;
+      }
+
       try {
-        const result = await fetchAuthSession();
-        if (!result || Object.keys(result).length === 0) {
-          console.log("Signed out!")
-          signOut();
-          return;
-        }
-        const admin = result?.tokens?.idToken?.payload["custom:role"]
+        const result = await Auth.currentAuthenticatedUser();
+        const admin = result?.signInUserSession?.idToken?.payload["custom:role"]
         if (admin) {
           const data = JSON.parse(admin);
           if (data.includes("Admin")) {
@@ -42,10 +45,8 @@ export default function UserFeedbackPage() {
           }
         }
       }
-      /** If there is some issue checking for admin status, just do nothing and the
-       * error page will show up
-        */
-      catch (e) {
+      catch (e){
+        // const userName = result?.attributes?.email;
         console.log(e);
       }
     })();
