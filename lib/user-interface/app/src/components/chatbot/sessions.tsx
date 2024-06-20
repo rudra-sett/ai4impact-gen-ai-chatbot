@@ -255,7 +255,7 @@ export default function Sessions(props: SessionsProps) {
                 </Button> */}
               </SpaceBetween>
             }
-            description="View or delete your past 100 sessions"
+            description="View or delete any of your past 100 sessions"
           >     
           {"Sessions"}       
           </Header>
