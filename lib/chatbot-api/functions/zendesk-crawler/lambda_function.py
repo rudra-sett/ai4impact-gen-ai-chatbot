@@ -41,6 +41,7 @@ def lambda_handler(event, context):
             for match in matches:
                 domain = match.split("@")[1]
                 filtered["body"] = re.sub(match,f'[EMAIL REDACTED, domain was {domain}]',filtered["body"])            
+            filtered_pages.append(filtered)
         pages = filtered_pages
     
     
