@@ -26,30 +26,27 @@ export default function Playground() {
   return (    
     <BaseAppLayout
       info={
-        <HelpPanel header={<Header variant="h3">Using the chat</Header>}>
+        <HelpPanel header={<Header variant="h3">Using the Application</Header>}>
           <p>
-            This chatbot application allows users to ask questions about the RIDE, an MBTA
+            This chatbot allows representatives to ask questions about the RIDE. It is intended
+            to help you find answers to riders' questions quickly and easily. You can find information on
+            anything about the RIDE, such as payments, scheduling, the NSLC policy, etc. If you are part of TRAC,
+            you can also ask questions regarding anything you might find in your Zendesk Help Center.
+            
           </p>
-          <h3>Settings</h3>
+          <h3>Know How: Features</h3>
           <p>
-            You can configure additional settings for the LLM via the setting
-            action at the bottom-right. You can change the Temperature and Top P
-            values to be used for the answer generation. You can also enable and
-            disable streaming mode for those models that support it (the setting
-            is ignored if the model does not support streaming). Turning on
-            Metadata displays additional information about the answer, such as
-            the prompts being used to interact with the LLM and the document
-            passages that might have been retrieved from the RAG storage.
+            <ol>
+           There are many features to support you as a representative!
+           <li>Querying: click the new session button in the left side panel or select one of the listed chats under session history, in the left side panel.</li>
+           <li>Feedback: select the thumbs up/thumbs down button under each chatbot response to provide feedback.</li>
+           <li>Sources: view the sources the chatbot pulled its information from by clicking on the sources button.</li>
+           <li>Email Generation: click on the generate email button under each chatbot response to generate an email to send.</li>
+           </ol>
           </p>
-          <h3>Multimodal chat</h3>
+          <h3>Satisfaction Survey</h3>
           <p>
-            If you select a multimodal model (like Anthropic Claude 3), you can
-            upload images to use in the conversation.
-          </p>
-          <h3>Session history</h3>
-          <p>
-            All conversations are saved and can be later accessed via the{" "}
-            <Link to="/chatbot/sessions">Session</Link> in the navigation bar.
+            Along with the feedback button, please fill out this <Link to="https://forms.gle/9rBkqRKZW1sxFPUZ8">satisfaction survey</Link> if you would like to see improvements to this tool.
           </p>
         </HelpPanel>
       }
