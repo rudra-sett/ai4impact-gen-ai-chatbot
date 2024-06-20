@@ -22,7 +22,7 @@ def add_session(session_id, user_id, chat_history, title, new_chat_entry):
                 'user_id': user_id,  # Identifier for the user
                 'session_id': session_id,  # Unique identifier for the session
                 'chat_history': [new_chat_entry],  # List of chat history, initiating with the new entry
-                "title": title,  # Title of the session
+                "title": title.strip(),  # Title of the session
                 "time_stamp": str(datetime.now())  # Current timestamp as a string
             }
         )
@@ -239,6 +239,7 @@ def list_sessions_by_user_id(user_id, limit = 15):
 
     # Sort the items by 'time_stamp' in descending order to ensure the latest sessions appear first
     sorted_items = sorted(items, key=lambda x: x['time_stamp'], reverse=True)
+    sorted_items = list(map(lambda x: {"time_stamp" : x["time_stamp"], "session_id" : x["session_id"], "title" : x["title"].strip()},sorted_items))
 
     # Prepare the HTTP response object with a status code, headers, and body
     response = {
@@ -289,3 +290,4 @@ def lambda_handler(event, context):
             'body': json.dumps(f'Operation not found/allowed! Operation Sent: {operation}')
         }
         return response
+    
