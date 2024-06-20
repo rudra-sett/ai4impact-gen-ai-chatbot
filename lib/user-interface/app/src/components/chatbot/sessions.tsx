@@ -8,15 +8,17 @@ import {
   Header,
   CollectionPreferences,
   Modal,
+  ContentLayout,
 } from "@cloudscape-design/components";
-import { DateTime } from "luxon";
 import { useState, useEffect, useContext, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
+import { Auth } from  'aws-amplify'
 import { useCollection } from "@cloudscape-design/collection-hooks";
 import { ApiClient } from "../../common/api-client/api-client";
 import { AppContext } from "../../common/app-context";
 import RouterButton from "../wrappers/router-button";
+import { DateTime } from "luxon";
 // import { Session } from "../../API";
 
 export interface SessionsProps {
@@ -43,24 +45,27 @@ export default function Sessions(props: SessionsProps) {
       ),
     },
     pagination: { pageSize: preferences.pageSize },
-    // sorting: {
-    //   defaultState: {
-    //     sortingColumn: {
-    //       sortingField: "startTime",
-    //     },
-    //     isDescending: true,
-    //   },
-    // },
+    sorting: {
+      defaultState: {
+        sortingColumn: {
+          sortingField: "time_stamp",
+        },
+        isDescending: true,
+      },
+    },
     selection: {},
   });
 
   const getSessions = useCallback(async () => {
     if (!appContext) return;
-
+    let username;
     const apiClient = new ApiClient(appContext);
     try {
-      const result = await apiClient.sessions.getSessions('0');
-      setSessions(result);
+      await Auth.currentAuthenticatedUser().then((value) => username = value.username);
+      if (username) {
+        const result = await apiClient.sessions.getSessions(username,true);
+        setSessions(result);
+      }
     } catch (e) {
       console.log(e);
       setSessions([]);
@@ -79,16 +84,20 @@ export default function Sessions(props: SessionsProps) {
 
   const deleteSelectedSessions = async () => {
     if (!appContext) return;
-
+    let username;
+    await Auth.currentAuthenticatedUser().then((value) => username = value.username);
     setIsLoading(true);
     const apiClient = new ApiClient(appContext);
     await Promise.all(
-      selectedItems.map((s) => apiClient.sessions.deleteSession(s.session_id,s.user_id))
+      selectedItems.map((s) => apiClient.sessions.deleteSession(s.session_id, username))
     );
+    setSelectedItems([])
+    setShowModalDelete(false);
     await getSessions();
     setIsLoading(false);
   };
 
+  /** Deletes all user sessions, functionality is intentionally not available  */
   const deleteUserSessions = async () => {
     if (!appContext) return;
 
@@ -124,7 +133,13 @@ export default function Sessions(props: SessionsProps) {
           ? `session ${selectedItems[0].session_id}?`
           : `${selectedItems.length} sessions?`}
       </Modal>
-      <Modal
+      {/* This Modal allows for the deletion of ALL sessions
+      We decided this was too powerful and deliberately left it out
+      The API connector in sessions-client also does not include
+      functionality to delete all sessions for the same reason.
+      However, the API itself does have the functionality, albeit inaccessible
+      aside from a manual authenticated API call */}
+      {/* <Modal
         onDismiss={() => setDeleteAllSessions(false)}
         visible={deleteAllSessions}
         footer={
@@ -146,10 +161,11 @@ export default function Sessions(props: SessionsProps) {
         header={"Delete all sessions"}
       >
         {`Do you want to delete ${sessions.length} sessions?`}
-      </Modal>
+      </Modal> */}
+      <ContentLayout header={<Header variant="h1">Session History</Header>}>
       <Table
         {...collectionProps}
-        variant="full-page"
+        // variant="full-page"
         items={items}
         onSelectionChange={({ detail }) => {
           console.log(detail);
@@ -157,7 +173,7 @@ export default function Sessions(props: SessionsProps) {
         }}
         selectedItems={selectedItems}
         selectionType="multi"
-        trackBy="Key"
+        trackBy="session_id"
         empty={
           <Box margin={{ vertical: "xs" }} textAlign="center" color="inherit">
             <SpaceBetween size="m">
@@ -168,16 +184,15 @@ export default function Sessions(props: SessionsProps) {
         ariaLabels={{
           selectionGroupLabel: "Items selection",
           allItemsSelectionLabel: ({ selectedItems }) =>
-            `${selectedItems.length} ${
-              selectedItems.length === 1 ? "item" : "items"
-            } selected`,          
+            `${selectedItems.length} ${selectedItems.length === 1 ? "item" : "items"
+            } selected`,
           itemSelectionLabel: (e, item) => item.title!,
         }}
         pagination={<Pagination {...paginationProps} />}
         loadingText="Loading history"
         loading={isLoading}
         resizableColumns
-        stickyHeader={true}
+        // stickyHeader={true}
         preferences={
           <CollectionPreferences
             onConfirm={({ detail }) =>
@@ -199,22 +214,22 @@ export default function Sessions(props: SessionsProps) {
         }
         header={
           <Header
-            description="List of past sessions"
-            variant="awsui-h1-sticky"
+            // description="List of past sessions"
+            // variant="awsui-h1-sticky"
             actions={
-              <SpaceBetween direction="horizontal" size="m" alignItems="center">
+              <SpaceBetween direction="horizontal" size="m">
                 <RouterButton
                   iconName="add-plus"
                   href={`/chatbot/playground/${uuidv4()}`}
-                  variant="inline-link"
-                  onClick={() => getSessions()}
+                  // variant="inline-link"
+                  // onClick={() => getSessions()}
                 >
                   New session
                 </RouterButton>
                 <Button
                   iconAlt="Refresh list"
                   iconName="refresh"
-                  variant="inline-link"
+                  // variant="inline-link"
                   onClick={() => getSessions()}
                 >
                   Refresh
@@ -223,25 +238,26 @@ export default function Sessions(props: SessionsProps) {
                   disabled={selectedItems.length == 0}
                   iconAlt="Delete"
                   iconName="remove"
-                  variant="inline-link"
+                  // variant="inline-link"
                   onClick={() => {
                     if (selectedItems.length > 0) setShowModalDelete(true);
                   }}
                 >
                   Delete
                 </Button>
-                <Button
+                {/* <Button
                   iconAlt="Delete all sessions"
                   iconName="delete-marker"
                   variant="inline-link"
                   onClick={() => setDeleteAllSessions(true)}
                 >
                   Delete all sessions
-                </Button>
+                </Button> */}
               </SpaceBetween>
             }
-          >
-            Session History
+            description="View or delete your past 100 sessions"
+          >     
+          {"Sessions"}       
           </Header>
         }
         columnDefinitions={
@@ -249,32 +265,33 @@ export default function Sessions(props: SessionsProps) {
             {
               id: "title",
               header: "Title",
-              sortingField: "session_id",
+              sortingField: "title",
               width: 800,
               minWidth: 200,
               cell: (e) => (
-                <Link to={`/chatbot/playground/${e.session_id}`}>{e.session_id}</Link>
+                <Link to={`/chatbot/playground/${e.session_id}`}>{e.title}</Link>
               ),
               isRowHeader: true,
             },
-            // {
-            //   id: "startTime",
-            //   header: "Time",
-            //   sortingField: "startTime",
-            //   cell: (e) =>
-            //     DateTime.fromISO(
-            //       new Date(e.startTime).toISOString()
-            //     ).toLocaleString(DateTime.DATETIME_SHORT),
-            //   sortingComparator: (a, b) => {
-            //     return (
-            //       new Date(b.startTime).getTime() -
-            //       new Date(a.startTime).getTime()
-            //     );
-            //   },
-            // },
+            {
+              id: "time",
+              header: "Time",
+              sortingField: "time_stamp",
+              cell: (e) =>
+                DateTime.fromISO(
+                  new Date(e.time_stamp).toISOString()
+                ).toLocaleString(DateTime.DATETIME_SHORT),
+              sortingComparator: (a, b) => {
+                return (
+                  new Date(b.time_stamp).getTime() -
+                  new Date(a.time_stamp).getTime()
+                );
+              },
+            },
           ] as TableProps.ColumnDefinition<any>[]
         }
       />
+      </ContentLayout>
     </>
   );
 }

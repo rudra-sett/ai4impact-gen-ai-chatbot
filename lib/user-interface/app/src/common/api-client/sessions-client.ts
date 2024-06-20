@@ -19,7 +19,8 @@ export class SessionsClient {
   // Gets all sessions tied to a given user ID
   // Return format: [{"session_id" : "string", "user_id" : "string", "time_stamp" : "dd/mm/yy", "title" : "string"}...]
   async getSessions(
-    userId: string
+    userId: string,
+    all?: boolean
   ) {
     const auth = await Utils.authenticate();
     let validData = false;
@@ -35,21 +36,16 @@ export class SessionsClient {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + auth,
         },
-        body: JSON.stringify({ "operation": "list_sessions_by_user_id", "user_id": userId })
+        body: JSON.stringify(all? { "operation": "list_all_sessions_by_user_id", "user_id": userId } : { "operation": "list_sessions_by_user_id", "user_id": userId })
       });
       if (response.status != 200) {
         validData = false;
         let jsonResponse = await response.json()        
         errorMessage = jsonResponse;        
         break;
-      }
-      const reader = response.body.getReader();
-      const { value, done } = await reader.read();
-      const decoder = new TextDecoder();
-      const parsed = decoder.decode(value)
-      // console.log(parsed)
+      }      
       try {
-        output = JSON.parse(parsed);
+        output = await response.json();
         validData = true;
       } catch (e) {
         // just retry, we get 3 attempts!
@@ -59,7 +55,7 @@ export class SessionsClient {
     if (!validData) {
       throw new Error(errorMessage);
     }
-    console.log(output);
+    // console.log(output);
     return output;
   }
 

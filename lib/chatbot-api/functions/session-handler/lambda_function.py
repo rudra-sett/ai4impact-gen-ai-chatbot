@@ -139,7 +139,7 @@ def update_session(session_id, user_id, new_chat_entry):
 def delete_session(session_id, user_id):
     try:
         # Attempt to delete an item from the DynamoDB table based on the provided session_id and user_id.
-        table.delete_item(Key={"SessionId": session_id, "UserId": user_id})
+        table.delete_item(Key={"session_id": session_id, "user_id": user_id})
     except ClientError as error:
         print("Caught error: DynamoDB error - could not delete session")
         # Handle specific DynamoDB client errors. If the item cannot be found or another error occurs, return the appropriate message.
@@ -177,21 +177,21 @@ def delete_user_sessions(user_id):
         return [{"error": str(error)}]
         
         
-def list_sessions_by_user_id(user_id):
+def list_sessions_by_user_id(user_id, limit = 15):
     items = []  # Initialize an empty list to store the fetched session items
 
     try:
         last_evaluated_key = None  # Initialize the key to control the pagination loop
 
         # Keep fetching until we have 15 items or there are no more items to fetch
-        while len(items) < 15:
+        while len(items) < limit:
             response = table.query(
                 IndexName='TimeIndex',  # Specify the secondary index to perform the query
                 ProjectionExpression='session_id, title, time_stamp',  # Limit the fields returned in the results
                 KeyConditionExpression="user_id = :user_id",  # Define the key condition for the query
                 ExpressionAttributeValues={":user_id": user_id},  # Bind the user_id value to the placeholder in KeyConditionExpression
                 ScanIndexForward=False,  # Sort the results in descending order by the sort key
-                Limit=15 - len(items),  # Dynamically adjust the query limit based on how many items we've already retrieved
+                Limit=limit - len(items),  # Dynamically adjust the query limit based on how many items we've already retrieved
             )
             items.extend(response.get("Items", []))  # Extend the items list with the newly fetched items
 
@@ -274,6 +274,8 @@ def lambda_handler(event, context):
         return update_session(session_id, user_id, new_chat_entry)
     elif operation == 'list_sessions_by_user_id':
         return list_sessions_by_user_id(user_id)
+    elif operation == 'list_all_sessions_by_user_id':
+        return list_sessions_by_user_id(user_id,limit=100)
     elif operation == 'delete_session':
         return delete_session(session_id, user_id)
     elif operation == 'delete_user_sessions':
@@ -287,4 +289,3 @@ def lambda_handler(event, context):
             'body': json.dumps(f'Operation not found/allowed! Operation Sent: {operation}')
         }
         return response
-    
