@@ -128,7 +128,7 @@ export default function Chat(props: { sessionId?: string, updateEmailFunction : 
           statusIconAriaLabel="Info"
           header=""
        >
-        AI Models can make mistakes. Be mindful in validating important information.
+        AI can make mistakes. Please verify any important information. This tool is for internal use only.
       </Alert> )}
 
       

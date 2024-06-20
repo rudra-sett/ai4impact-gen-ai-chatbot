@@ -57,11 +57,7 @@ export default function GlobalHeader() {
           href: "/",
           logo: { src: "/images/icon.png", alt: { CHATBOT_NAME } + " Logo" },
         }}
-        utilities={[
-          {
-            type: "button",
-            text: "for internal use only- testing stage",
-          },
+        utilities={[          
           {
             type: "button",
             text: theme === Mode.Dark ? "Light Mode" : "Dark Mode",

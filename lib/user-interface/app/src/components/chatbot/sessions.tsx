@@ -19,7 +19,8 @@ import { ApiClient } from "../../common/api-client/api-client";
 import { AppContext } from "../../common/app-context";
 import RouterButton from "../wrappers/router-button";
 import { DateTime } from "luxon";
-// import { Session } from "../../API";
+import { SessionRefreshContext } from "../../common/session-refresh-context"
+import { useNotifications } from "../notif-manager";
 
 export interface SessionsProps {
   readonly toolsOpen: boolean;
@@ -33,6 +34,8 @@ export default function Sessions(props: SessionsProps) {
   const [preferences, setPreferences] = useState({ pageSize: 20 });
   const [showModalDelete, setShowModalDelete] = useState(false);
   const [deleteAllSessions, setDeleteAllSessions] = useState(false);
+  const { notifications, addNotification } = useNotifications();
+  const {needsRefresh, setNeedsRefresh} = useContext(SessionRefreshContext);
 
   const { items, collectionProps, paginationProps } = useCollection(sessions, {
     filtering: {
@@ -67,7 +70,9 @@ export default function Sessions(props: SessionsProps) {
         setSessions(result);
       }
     } catch (e) {
-      console.log(e);
+      // console.log(e);
+      addNotification("error","Could not fetch sessions: " + e.message)
+      addNotification("info","Please refresh the page")
       setSessions([]);
     }
   }, [appContext]);
@@ -95,6 +100,7 @@ export default function Sessions(props: SessionsProps) {
     setShowModalDelete(false);
     await getSessions();
     setIsLoading(false);
+    setNeedsRefresh(true);
   };
 
   /** Deletes all user sessions, functionality is intentionally not available  */
