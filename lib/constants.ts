@@ -7,6 +7,6 @@ export const kendraIndexName = 'prod-massHealth'
 export const cognitoDomainName = "genaimvp-auth-massHealth"
 // this can be anything that would be understood easily, but you must use the same name
 // when setting up a sign-in provider in Cognito
-export const OIDCIntegrationName = "Azure-OIDC"
+export const OIDCIntegrationName = ""
 // this MUST be unique to your account
 export const stackName = "GenAiChatStack-massHealth"
