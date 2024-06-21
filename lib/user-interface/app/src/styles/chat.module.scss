@@ -1,0 +1,293 @@
+@use "@cloudscape-design/design-tokens/index" as awsui;
+
+.chat_container {
+  margin-bottom: -40px;
+  min-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+@media (min-width: 466px) {
+  .chat_container {
+    min-height: calc(100vh - 104px);
+  }
+}
+
+@media (min-width: 689px) {
+  .chat_container {
+    min-height: calc(100vh - 60px);
+  }
+}
+
+@media (min-width: 913px) {
+  .chat_container {
+    min-height: calc(100vh - 68px);
+  }
+}
+
+.welcome_text {
+  color: awsui.$color-text-body-default;
+  font-size: 3rem;
+  font-family: 'Calibri', 'Open Sans', system-ui;
+  font-weight: bolder;
+  opacity: 0.4;
+}
+
+.input_textarea_container {
+  display: flex;
+  flex-direction: row; /* Ensures elements are in a row */
+  align-items: center; /* Align items vertically in the center */
+  gap: 4px;
+  width: 100%;
+}
+
+.input_textarea {
+  resize: none;
+  border: none;
+  padding: 12px 12px 12px 4px;
+  background-color: transparent;
+  outline: none;
+  flex-grow: 1;
+  font-size: 18px;
+  color: #333;
+  font-family: 'Calibri', 'Open Sans', system-ui;
+}
+
+.info_bar{
+  display: flex;
+  align-items: center;
+  gap: awsui.$space-scaled-xs;
+  margin-top: -5px;
+}
+
+.info_bar_right {
+  display: flex;
+  align-items: center;
+  margin-left: auto; /* Pushes the right content to the far right */
+  }
+
+  @media (max-width: 768px) {
+    .input_textarea_container {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    .input_textarea {
+      width: 100%;
+      font-size: 0.9rem;
+    }
+  
+    .input_textarea_container > * {
+      margin-bottom: 8px;
+    }
+  
+    .info_bar {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  
+    .info_bar_right {
+      margin-left: 0;
+      margin-top: 8px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .input_textarea {
+      font-size: 0.8rem;
+      padding: 8px;
+    }
+  
+    .input_textarea_container {
+      gap: 8px;
+    }
+  
+    .info_bar {
+      gap: 8px;
+    }
+  }  
+
+.btn_chabot_message_copy {
+  float: right;
+}
+
+.btn_chabot_message_actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn_chabot_metadata_copy {
+  float: right;
+  margin-top: 1em;
+}
+
+.img_chabot_message {
+  max-width: 30%;
+  border-radius: 8px;
+}
+
+.calibri-font {
+  font-family: 'Calibri', sans-serif;
+}
+
+.fullscreen_center {
+  position: fixed; // Use absolute if you don't want it to stay in view during scrolling
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10; // Adjust as necessary to ensure it's above other content
+}
+
+.ma__brand-banner {
+  width: calc(100% - 20px); /* Adjust the width to account for the margin */
+  margin-right: 20px; /* Add margin to the right */
+  position: relative;
+  left: 0;
+  background-color: #f0f0f0; /* Adjust the background color as needed */
+}
+
+.ma__brand-banner-container {
+  max-width: 1000px; /* Optional: constrain the maximum width */
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 10px 20px;
+  cursor: pointer; /* Make the entire container clickable */
+}
+
+.ma__brand-banner-logo {
+  height: 50px;
+  margin-right: 20px;
+}
+
+.ma__brand-banner-text {
+  font-size: 14px;
+}
+
+.ma__brand-banner-expansion {
+  display: none; /* Start collapsed */
+  justify-content: space-between;
+  padding: 10px 20px;
+  list-style: none;
+  background-color: #e0e0e0; /* Adjust the background color as needed */
+}
+
+.ma__brand-banner-expansion.expanded {
+  display: flex; /* Show when expanded */
+}
+
+.ma__brand-banner-expansion-item {
+  display: flex;
+  align-items: center;
+}
+
+.ma__brand-banner-expansion-item-content {
+  margin-left: 10px;
+}
+
+.ma__brand-banner-expansion-item svg {
+  margin-right: 10px;
+}
+
+.modal.custom-modal {
+  background-color: #388557 !important; // Change this to your desired color
+  color: #333 !important; // Optional: Change the text color if needed
+  padding: 20px; // Optional: Add some padding
+  border-radius: 10px; // Optional: Add rounded corners
+}
+
+.chatbot_name {
+  font-family: 'Calibri', 'Open Sans', system-ui; // Example font
+  font-size: 45px; // Example size
+  font-weight: bold; // Makes the font bold
+  color: rgb(56, 133, 87); // Sets the text color
+}
+
+@media (max-width: 689px) {
+  .input_controls {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    grid-template-columns: 1fr;
+    gap: awsui.$space-scaled-xs;
+  }
+}
+
+@container (max-width: 689px) {
+  .input_controls {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    grid-template-columns: 1fr;
+    gap: awsui.$space-scaled-xs;
+  }
+}
+
+.codeMarkdown {
+  background-color: awsui.$color-charts-line-grid;
+  text-overflow: ellipsis;
+  overflow: scroll;
+  border-radius: 5px;
+  padding: 5px;
+}
+
+.markdownTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1em;
+  border: 1px solid awsui.$color-border-divider-default;
+  border-radius: awsui.$border-radius-container;
+}
+
+.markdownTable th,
+.markdownTable td {
+  border: 1px solid awsui.$color-border-divider-default;
+  padding: 8px;
+  text-align: left;
+}
+
+.markdownTable th {
+  background-color: awsui.$color-background-container-header;
+}
+
+.markdownTable tr:nth-child(even) {
+  background-color: awsui.$color-background-container-content;
+}
+
+.thumbsContainer {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.thumbsIcon {
+  cursor: pointer;
+  margin-right: 10px;
+  opacity: 0.5;
+}
+
+/* Styles for thumbs up icon. Should be compatible with dark theme */
+.thumbsUp {
+  color: #539fe5;
+}
+
+/* Styles for thumbs down icon. Should be compatible with dark theme */
+.thumbsDown {
+  color: #539fe5;
+}
+
+/* Style for clicked state */
+.clicked {
+  opacity: 0.5;
+  pointer-events: none; /* Disable pointer events for a clicked icon */
+}
+
+/* Styles for selected icon */
+.thumbsIcon.selected {
+  opacity: 1 !important;
+  pointer-events: none; /* Disable pointer events for the selected icon */
+}
