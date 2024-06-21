@@ -2,11 +2,8 @@ import * as cdk from "aws-cdk-lib";
 import { aws_apigatewayv2 as apigwv2 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 
-// import { NagSuppressions } from "cdk-nag";
-
 interface WebsocketBackendAPIProps {  
-  // readonly userPool: UserPool;
-  // readonly api: appsync.GraphqlApi;
+  
 }
 
 export class WebsocketBackendAPI extends Construct {
