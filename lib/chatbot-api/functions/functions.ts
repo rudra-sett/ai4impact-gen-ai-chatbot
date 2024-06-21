@@ -8,6 +8,8 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import * as kendra from 'aws-cdk-lib/aws-kendra';
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
+
 
 interface LambdaFunctionStackProps {  
   readonly wsApiEndpoint : string;  
@@ -27,6 +29,8 @@ export class LambdaFunctionStack extends cdk.Stack {
   public readonly getS3Function : lambda.Function;
   public readonly uploadS3Function : lambda.Function;
   public readonly syncKendraFunction : lambda.Function;
+  public readonly chatInvocationsCounterFunction: lambda.Function;
+
 
   constructor(scope: Construct, id: string, props: LambdaFunctionStackProps) {
     super(scope, id);    
@@ -204,6 +208,24 @@ export class LambdaFunctionStack extends cdk.Stack {
       resources: [props.knowledgeBucket.bucketArn,props.knowledgeBucket.bucketArn+"/*"]
     }));
     this.uploadS3Function = uploadS3APIHandlerFunction;
+
+    const chatInvocationsCounterFunction = new lambda.Function(scope, 'ChatInvocationsCounterFunction', {
+      runtime: lambda.Runtime.PYTHON_3_12,
+      code: lambda.Code.fromAsset(path.join(__dirname, 'chat-invocations-counter')),
+      handler: 'lambda_function.lambda_handler',
+      timeout: cdk.Duration.seconds(30),
+      environment: {
+        CHAT_FUNCTION_NAME: this.chatFunction.functionName,
+      },    
+    });
+
+    chatInvocationsCounterFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['cloudwatch:GetMetricStatistics'],
+      resources: ['*'],
+    }));
+
+    this.chatInvocationsCounterFunction = chatInvocationsCounterFunction;
 
   }
 }
