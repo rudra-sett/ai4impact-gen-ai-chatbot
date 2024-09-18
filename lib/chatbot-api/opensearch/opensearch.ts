@@ -50,7 +50,7 @@ export class OpenSearchStack extends cdk.Stack {
       ]
     });
 
-    const knowledgeBaseRole = new iam.Role(this, "KnowledgeBaseRole", {
+    const knowledgeBaseRole = new iam.Role(scope, "KnowledgeBaseRole", {
       assumedBy: new iam.ServicePrincipal('bedrock.amazonaws.com'),      
     })
 
@@ -135,7 +135,9 @@ export class OpenSearchStack extends cdk.Stack {
       invocationType: triggers.InvocationType.REQUEST_RESPONSE,
     });
 
-    this.indexTrigger = indexTrigger;
+    indexTrigger.executeAfter(openSearchCollection);
     
+    this.indexTrigger = indexTrigger;
+
   }  
 }
