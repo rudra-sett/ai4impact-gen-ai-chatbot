@@ -16,6 +16,7 @@ export class OpenSearchStack extends cdk.Stack {
   public readonly openSearchCollection : opensearchserverless.CfnCollection;  
   public readonly collectionName : string;
   public readonly knowledgeBaseRole : iam.Role;
+  public readonly indexTrigger : triggers.Trigger;
   
   constructor(scope: Construct, id: string, props: OpenSearchStackProps) {
     super(scope, id);
@@ -42,7 +43,7 @@ export class OpenSearchStack extends cdk.Stack {
       policy : `{"Rules":[{"ResourceType":"dashboard","Resource":["collection/${this.collectionName}"]},{"ResourceType":"collection","Resource":["collection/${this.collectionName}"]}],"AllowFromPublic":true}`,
     })
 
-    const indexFunctionRole = new iam.Role(this, 'IndexFunctionRole', {      
+    const indexFunctionRole = new iam.Role(scope, 'IndexFunctionRole', {      
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       managedPolicies: [        
         iam.ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole")
@@ -133,5 +134,8 @@ export class OpenSearchStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(90),
       invocationType: triggers.InvocationType.REQUEST_RESPONSE,
     });
+
+    this.indexTrigger = indexTrigger;
+    
   }  
 }
