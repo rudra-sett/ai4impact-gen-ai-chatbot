@@ -72,6 +72,11 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
   );
   const messageHistoryRef = useRef<ChatBotHistoryItem[]>([]);
 
+  const [
+    selectedDataSource,
+    setSelectedDataSource
+  ] = useState({ label: "Bedrock Knowledge Base", value: "kb" } as SelectProps.ChangeDetail["selectedOption"]);
+
   useEffect(() => {
     messageHistoryRef.current = props.messageHistory;
   }, [props.messageHistory]);
@@ -220,7 +225,8 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
           MBTA Customer support (handles all other queries): 617-222-3200 (voice/relay)`,
             projectId: 'rsrs111111',
             user_id: username,
-            session_id: props.session.id
+            session_id: props.session.id,
+            retrievalSource: selectedDataSource.value
           }
         });
 
@@ -374,28 +380,26 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
       >
         This tool is for internal use only.
       </Box>
-      {/* <div className={styles.input_controls}>      
+      <div className={styles.input_controls}>      
         <div>
         </div>  
         <div className={styles.input_controls_right}>        
           <SpaceBetween direction="horizontal" size="xxs" alignItems="center">
             <div style={{ paddingTop: "1px" }}>              
             </div>            
-            <StatusIndicator
-              type={
-                readyState === ReadyState.OPEN
-                  ? "success"
-                  : readyState === ReadyState.CONNECTING ||
-                    readyState === ReadyState.UNINSTANTIATED
-                    ? "in-progress"
-                    : "error"
+            <Select
+              selectedOption={selectedDataSource}
+              onChange={({ detail }) =>
+                setSelectedDataSource(detail.selectedOption)
               }
-            >
-              {readyState === ReadyState.OPEN ? "Connected" : connectionStatus}
-            </StatusIndicator> 
+              options={[
+                { label: "Kendra", value: "kendra" },
+                { label: "Bedrock Knowledge Base", value: "kb" },                
+              ]}
+            />
           </SpaceBetween>
         </div>
-      </div> */}
+      </div>
     </SpaceBetween>
   );
 }

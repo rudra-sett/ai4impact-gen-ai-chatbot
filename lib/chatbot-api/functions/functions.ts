@@ -8,6 +8,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import * as kendra from 'aws-cdk-lib/aws-kendra';
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as bedrock from "aws-cdk-lib/aws-bedrock";
 import { aws_scheduler as scheduler } from 'aws-cdk-lib';
 
 import { removeZendeskEmails } from '../../constants';
@@ -22,6 +23,7 @@ interface LambdaFunctionStackProps {
   readonly knowledgeBucket : s3.Bucket;
   readonly zendeskBucket : s3.Bucket;
   readonly zendeskSource : kendra.CfnDataSource;
+  readonly knowledgeBase : bedrock.CfnKnowledgeBase;
 }
 
 export class LambdaFunctionStack extends cdk.Stack {  
@@ -78,7 +80,8 @@ export class LambdaFunctionStack extends cdk.Stack {
             Phone numbers:
             TRAC (handles scheduling/booking, trip changes/cancellations, anything time-sensitive): 844-427-7433 (voice/relay) 857-206-6569 (TTY)
             Mobility Center (handles eligibility except RIDE Flex, renewals, and changes to mobility status): 617-337-2727 (voice/relay)
-            MBTA Customer support (handles all other queries): 617-222-3200 (voice/relay)`
+            MBTA Customer support (handles all other queries): 617-222-3200 (voice/relay)`,
+            'KB_ID' : props.knowledgeBase.attrKnowledgeBaseId
           },
           timeout: cdk.Duration.seconds(300)
         });
@@ -86,7 +89,8 @@ export class LambdaFunctionStack extends cdk.Stack {
           effect: iam.Effect.ALLOW,
           actions: [
             'bedrock:InvokeModelWithResponseStream',
-            'bedrock:InvokeModel'
+            'bedrock:InvokeModel',
+            'bedrock:Retrieve'
           ],
           resources: ["*"]
         }));

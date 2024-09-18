@@ -18,6 +18,8 @@ import { WebSocketLambdaAuthorizer, HttpUserPoolAuthorizer, HttpJwtAuthorizer  }
 import { aws_apigatewayv2 as apigwv2 } from "aws-cdk-lib";
 import * as triggers from 'aws-cdk-lib/triggers';
 import { Construct } from "constructs";
+import { OpenSearchStack } from "./opensearch/opensearch";
+import { KnowledgeBaseStack } from "./knowledge-base/knowledge-base"
 
 // import { NagSuppressions } from "cdk-nag";
 
@@ -42,6 +44,10 @@ export class ChatBotApi extends Construct {
     const tables = new TableStack(this, "TableStack");
     const buckets = new S3BucketStack(this, "BucketStack");
     const kendra = new KendraIndexStack(this, "KendraStack", { s3Bucket: buckets.kendraBucket, zendeskBucket : buckets.zendeskBucket });
+    
+    const openSearch = new OpenSearchStack(this,"OpenSearchStack",{})
+    const knowledgeBase = new KnowledgeBaseStack(this,"KnowledgeBaseStack",{ openSearch : openSearch.openSearchCollection, s3bucket : buckets.kendraBucket, knowledgeBaseRole : openSearch.knowledgeBaseRole })
+    knowledgeBase.addDependency(openSearch)
 
     const restBackend = new RestBackendAPI(this, "RestBackend", {})
     this.httpAPI = restBackend;
@@ -58,7 +64,8 @@ export class ChatBotApi extends Construct {
         feedbackBucket: buckets.feedbackBucket,
         knowledgeBucket: buckets.kendraBucket,
         zendeskBucket: buckets.zendeskBucket,
-        zendeskSource: kendra.zendeskSource
+        zendeskSource: kendra.zendeskSource,
+        knowledgeBase: knowledgeBase.knowledgeBase
       })
 
     this.chatFunction = lambdaFunctions.chatFunction;
