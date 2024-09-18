@@ -32,7 +32,7 @@ export class OpenSearchStack extends cdk.Stack {
     // create encryption policy first
     const encPolicy = new opensearchserverless.CfnSecurityPolicy(scope, 'OSSEncryptionPolicy', {
       name: `${stackName.toLowerCase().slice(0,10)}-oss-enc-policy`,
-      policy: `[{"Rules":[{"ResourceType":"collection","Resource":["collection/${this.collectionName}"]}],"AWSOwnedKey":true}]`,
+      policy: `{"Rules":[{"ResourceType":"collection","Resource":["collection/${this.collectionName}"]}],"AWSOwnedKey":true}`,
       type: 'encryption'
     });    
 
