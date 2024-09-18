@@ -45,9 +45,9 @@ export class ChatBotApi extends Construct {
     const buckets = new S3BucketStack(this, "BucketStack");
     const kendra = new KendraIndexStack(this, "KendraStack", { s3Bucket: buckets.kendraBucket });
     
-    const openSearch = new OpenSearchStack(this,"OpenSearchStack",{})
-    const knowledgeBase = new KnowledgeBaseStack(this,"KnowledgeBaseStack",{ openSearch : openSearch.openSearchCollection, s3bucket : buckets.kendraBucket, knowledgeBaseRole : openSearch.knowledgeBaseRole })
-    knowledgeBase.addDependency(openSearch)
+    
+    const knowledgeBase = new KnowledgeBaseStack(this,"KnowledgeBaseStack",{ s3bucket : buckets.kendraBucket})
+    // knowledgeBase.addDependency(openSearch)
 
     const restBackend = new RestBackendAPI(this, "RestBackend", {})
     this.httpAPI = restBackend;
