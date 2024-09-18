@@ -86,7 +86,7 @@ export class KnowledgeBaseStack extends cdk.Stack {
       description: `Bedrock Knowledge Base for ${stackName}`,
     });
 
-    openSearch.indexTrigger.executeBefore(knowledgeBase)
+    // openSearch.indexTrigger.executeBefore(knowledgeBase)
 
     const dataSource = new bedrock.CfnDataSource(scope, 'S3DataSource', {
       dataSourceConfiguration: {
