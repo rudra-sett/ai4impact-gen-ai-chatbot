@@ -45,9 +45,12 @@ export class ChatBotApi extends Construct {
     const buckets = new S3BucketStack(this, "BucketStack");
     const kendra = new KendraIndexStack(this, "KendraStack", { s3Bucket: buckets.kendraBucket, zendeskBucket : buckets.zendeskBucket });
     
-    
-    const knowledgeBase = new KnowledgeBaseStack(this,"KnowledgeBaseStack",{ s3bucket : buckets.kendraBucket})
-    // knowledgeBase.addDependency(openSearch)
+    // unfortunately this is a terrifying hack where we construct the
+    // opensearch stack at the root-level rather than the chatbotapi stack
+    // this may solve dependency issues?
+    const openSearch = new OpenSearchStack(scope,"OpenSearchStack",{})
+    const knowledgeBase = new KnowledgeBaseStack(this,"KnowledgeBaseStack",{ openSearch : openSearch.openSearchCollection, s3bucket : buckets.kendraBucket, knowledgeBaseRole : openSearch.knowledgeBaseRole })
+    knowledgeBase.addDependency(openSearch)
 
     const restBackend = new RestBackendAPI(this, "RestBackend", {})
     this.httpAPI = restBackend;

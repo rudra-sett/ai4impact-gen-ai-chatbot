@@ -22,7 +22,7 @@ export class OpenSearchStack extends cdk.Stack {
     super(scope, id);
 
     this.collectionName = `${stackName.toLowerCase()}-oss-collection`
-    const openSearchCollection = new opensearchserverless.CfnCollection(scope, 'OpenSearchCollection', {
+    const openSearchCollection = new opensearchserverless.CfnCollection(this, 'OpenSearchCollection', {
       name: this.collectionName,      
       description: `OpenSearch Serverless Collection for ${stackName}`,
       standbyReplicas: 'DISABLED',      
@@ -30,33 +30,33 @@ export class OpenSearchStack extends cdk.Stack {
     });
 
     // create encryption policy first
-    const encPolicy = new opensearchserverless.CfnSecurityPolicy(scope, 'OSSEncryptionPolicy', {
+    const encPolicy = new opensearchserverless.CfnSecurityPolicy(this, 'OSSEncryptionPolicy', {
       name: `${stackName.toLowerCase().slice(0,10)}-oss-enc-policy`,
       policy: `{"Rules":[{"ResourceType":"collection","Resource":["collection/${this.collectionName}"]}],"AWSOwnedKey":true}`,
       type: 'encryption'
     });    
 
     // also network policy
-    const networkPolicy = new opensearchserverless.CfnSecurityPolicy(scope, "OSSNetworkPolicy", {
+    const networkPolicy = new opensearchserverless.CfnSecurityPolicy(this, "OSSNetworkPolicy", {
       name: `${stackName.toLowerCase().slice(0,10)}-oss-network-policy`,
       type : "network",
       policy : `[{"Rules":[{"ResourceType":"dashboard","Resource":["collection/${this.collectionName}"]},{"ResourceType":"collection","Resource":["collection/${this.collectionName}"]}],"AllowFromPublic":true}]`,
     })
 
-    const indexFunctionRole = new iam.Role(scope, 'IndexFunctionRole', {      
+    const indexFunctionRole = new iam.Role(this, 'IndexFunctionRole', {      
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       managedPolicies: [        
         iam.ManagedPolicy.fromAwsManagedPolicyName("service-role/AWSLambdaBasicExecutionRole")
       ]
     });
 
-    const knowledgeBaseRole = new iam.Role(scope, "KnowledgeBaseRole", {
+    const knowledgeBaseRole = new iam.Role(this, "KnowledgeBaseRole", {
       assumedBy: new iam.ServicePrincipal('bedrock.amazonaws.com'),      
     })
 
     this.knowledgeBaseRole = knowledgeBaseRole;
 
-    const accessPolicy = new opensearchserverless.CfnAccessPolicy(scope, "OSSAccessPolicy", {
+    const accessPolicy = new opensearchserverless.CfnAccessPolicy(this, "OSSAccessPolicy", {
       name: `${stackName.toLowerCase().slice(0,10)}-oss-access-policy`,
       type: "data",
       policy : JSON.stringify([
@@ -98,7 +98,7 @@ export class OpenSearchStack extends cdk.Stack {
 
     this.openSearchCollection = openSearchCollection;
 
-    const openSearchCreateIndexFunction = new lambda.Function(scope, 'OpenSearchCreateIndexFunction', {
+    const openSearchCreateIndexFunction = new lambda.Function(this, 'OpenSearchCreateIndexFunction', {
       runtime: lambda.Runtime.PYTHON_3_12, // Choose any supported Node.js runtime
       code: lambda.Code.fromAsset(path.join(__dirname, 'create-index-lambda'),
         {
@@ -129,7 +129,7 @@ export class OpenSearchStack extends cdk.Stack {
       resources: [`arn:aws:aoss:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:collection/${openSearchCollection.attrId}`]
     }));
 
-    const indexTrigger = new triggers.Trigger(scope, 'IndexTrigger', {
+    const indexTrigger = new triggers.Trigger(this, 'IndexTrigger', {
       handler: openSearchCreateIndexFunction,
       timeout: cdk.Duration.seconds(90),
       invocationType: triggers.InvocationType.REQUEST_RESPONSE,
