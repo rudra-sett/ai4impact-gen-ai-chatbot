@@ -21,7 +21,7 @@ export class OpenSearchStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: OpenSearchStackProps) {
     super(scope, id);
 
-    this.collectionName = `${stackName}-oss-collection`
+    this.collectionName = `${stackName.toLowerCase()}-oss-collection`
     const openSearchCollection = new opensearchserverless.CfnCollection(scope, 'OpenSearchCollection', {
       name: this.collectionName,      
       description: `OpenSearch Serverless Collection for ${stackName}`,
@@ -31,14 +31,14 @@ export class OpenSearchStack extends cdk.Stack {
 
     // create encryption policy first
     const encPolicy = new opensearchserverless.CfnSecurityPolicy(scope, 'OSEncryptionPolicy', {
-      name: `${stackName}-oss-enc-policy`,
+      name: `${stackName.toLowerCase()}-oss-enc-policy`,
       policy: `{"Rules":[{"ResourceType":"collection","Resource":["collection/${this.collectionName}"]}],"AWSOwnedKey":true}`,
       type: 'encryption'
     });    
 
     // also network policy
     const networkPolicy = new opensearchserverless.CfnSecurityPolicy(scope, "OSSNetworkPolicy", {
-      name: `${stackName}-oss-network-policy`,
+      name: `${stackName.toLowerCase()}-oss-network-policy`,
       type : "network",
       policy : `{"Rules":[{"ResourceType":"dashboard","Resource":["collection/${this.collectionName}"]},{"ResourceType":"collection","Resource":["collection/${this.collectionName}"]}],"AllowFromPublic":true}`,
     })
@@ -57,7 +57,7 @@ export class OpenSearchStack extends cdk.Stack {
     this.knowledgeBaseRole = knowledgeBaseRole;
 
     const accessPolicy = new opensearchserverless.CfnAccessPolicy(scope, "OSSAccessPolicy", {
-      name: `${stackName}-oss-access-policy`,
+      name: `${stackName.toLowerCase()}-oss-access-policy`,
       type: "data",
       policy : JSON.stringify([
         {
