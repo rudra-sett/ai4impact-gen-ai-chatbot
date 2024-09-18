@@ -31,16 +31,16 @@ export class OpenSearchStack extends cdk.Stack {
 
     // create encryption policy first
     const encPolicy = new opensearchserverless.CfnSecurityPolicy(scope, 'OSSEncryptionPolicy', {
-      name: `${stackName.toLowerCase()}-oss-enc-policy`,
-      policy: `{"Rules":[{"ResourceType":"collection","Resource":["collection/${this.collectionName}"]}],"AWSOwnedKey":true}`,
+      name: `${stackName.toLowerCase().slice(0,10)}-oss-enc-policy`,
+      policy: `[{"Rules":[{"ResourceType":"collection","Resource":["collection/${this.collectionName}"]}],"AWSOwnedKey":true}]`,
       type: 'encryption'
     });    
 
     // also network policy
     const networkPolicy = new opensearchserverless.CfnSecurityPolicy(scope, "OSSNetworkPolicy", {
-      name: `${stackName.toLowerCase()}-oss-network-policy`,
+      name: `${stackName.toLowerCase().slice(0,10)}-oss-network-policy`,
       type : "network",
-      policy : `{"Rules":[{"ResourceType":"dashboard","Resource":["collection/${this.collectionName}"]},{"ResourceType":"collection","Resource":["collection/${this.collectionName}"]}],"AllowFromPublic":true}`,
+      policy : `[{"Rules":[{"ResourceType":"dashboard","Resource":["collection/${this.collectionName}"]},{"ResourceType":"collection","Resource":["collection/${this.collectionName}"]}],"AllowFromPublic":true}]`,
     })
 
     const indexFunctionRole = new iam.Role(scope, 'IndexFunctionRole', {      
@@ -57,7 +57,7 @@ export class OpenSearchStack extends cdk.Stack {
     this.knowledgeBaseRole = knowledgeBaseRole;
 
     const accessPolicy = new opensearchserverless.CfnAccessPolicy(scope, "OSSAccessPolicy", {
-      name: `${stackName.toLowerCase()}-oss-access-policy`,
+      name: `${stackName.toLowerCase().slice(0,10)}-oss-access-policy`,
       type: "data",
       policy : JSON.stringify([
         {

@@ -23,7 +23,7 @@ export class KnowledgeBaseStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: KnowledgeBaseStackProps) {
     super(scope, id);
 
-    const openSearch = new OpenSearchStack(this,"OpenSearchStack",{})
+    const openSearch = new OpenSearchStack(scope,"OpenSearchStack",{})
 
     // add AOSS access to the role
     openSearch.knowledgeBaseRole.addToPolicy(
@@ -87,7 +87,7 @@ export class KnowledgeBaseStack extends cdk.Stack {
     });
 
     // openSearch.indexTrigger.executeBefore(knowledgeBase)
-    knowledgeBase.node.addDependency(openSearch.indexTrigger);
+    // knowledgeBase.node.addDependency(openSearch.indexTrigger);
 
     const dataSource = new bedrock.CfnDataSource(scope, 'S3DataSource', {
       dataSourceConfiguration: {
