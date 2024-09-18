@@ -8,6 +8,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import * as kendra from 'aws-cdk-lib/aws-kendra';
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as bedrock from "aws-cdk-lib/aws-bedrock";
 
 interface LambdaFunctionStackProps {  
   readonly wsApiEndpoint : string;  
@@ -17,6 +18,7 @@ interface LambdaFunctionStackProps {
   readonly feedbackTable : Table;
   readonly feedbackBucket : s3.Bucket;
   readonly knowledgeBucket : s3.Bucket;
+  readonly knowledgeBase : bedrock.CfnKnowledgeBase;
 }
 
 export class LambdaFunctionStack extends cdk.Stack {  
@@ -64,7 +66,9 @@ export class LambdaFunctionStack extends cdk.Stack {
           environment : {
             "WEBSOCKET_API_ENDPOINT" : props.wsApiEndpoint.replace("wss","https"),
             "INDEX_ID" : props.kendraIndex.attrId,
-            "PROMPT" : "You are a helpful AI chatbot that will answer questions based on your knowledge."
+            "PROMPT" : `You are a helpful AI chatbot that will answer questions based on your knowledge. 
+            You have access to a search tool that you will use to look up answers to questions.`,
+            'KB_ID' : props.knowledgeBase.attrKnowledgeBaseId
           },
           timeout: cdk.Duration.seconds(300)
         });
@@ -72,7 +76,8 @@ export class LambdaFunctionStack extends cdk.Stack {
           effect: iam.Effect.ALLOW,
           actions: [
             'bedrock:InvokeModelWithResponseStream',
-            'bedrock:InvokeModel'
+            'bedrock:InvokeModel',
+            'bedrock:Retrieve'
           ],
           resources: ["*"]
         }));

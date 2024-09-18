@@ -71,6 +71,11 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
   );  
   const messageHistoryRef = useRef<ChatBotHistoryItem[]>([]);
 
+  const [
+    selectedDataSource,
+    setSelectedDataSource
+  ] = useState({ label: "Bedrock Knowledge Base", value: "kb" } as SelectProps.ChangeDetail["selectedOption"]);
+
   useEffect(() => {
     messageHistoryRef.current = props.messageHistory;    
   }, [props.messageHistory]);
@@ -217,7 +222,8 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
           MBTA Customer support (handles all other queries): 617-222-3200 (voice/relay)`,
             projectId: 'rsrs111111',
             user_id: username,
-            session_id: props.session.id
+            session_id: props.session.id,
+            retrievalSource: selectedDataSource.value
           }
         });
         

@@ -21,6 +21,8 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 import { WebSocketLambdaAuthorizer, HttpUserPoolAuthorizer, HttpJwtAuthorizer  } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { aws_apigatewayv2 as apigwv2 } from "aws-cdk-lib";
 import { Construct } from "constructs";
+import { OpenSearchStack } from "./opensearch/opensearch";
+import { KnowledgeBaseStack } from "./knowledge-base/knowledge-base"
 
 // import { NagSuppressions } from "cdk-nag";
 
@@ -42,6 +44,10 @@ export class ChatBotApi extends Construct {
     const tables = new TableStack(this, "TableStack");
     const buckets = new S3BucketStack(this, "BucketStack");
     const kendra = new KendraIndexStack(this, "KendraStack", { s3Bucket: buckets.kendraBucket });
+    
+    const openSearch = new OpenSearchStack(this,"OpenSearchStack",{})
+    const knowledgeBase = new KnowledgeBaseStack(this,"KnowledgeBaseStack",{ openSearch : openSearch.openSearchCollection, s3bucket : buckets.kendraBucket, knowledgeBaseRole : openSearch.knowledgeBaseRole })
+    knowledgeBase.addDependency(openSearch)
 
     const restBackend = new RestBackendAPI(this, "RestBackend", {})
     this.httpAPI = restBackend;
@@ -56,7 +62,8 @@ export class ChatBotApi extends Construct {
         kendraSource: kendra.kendraSource,
         feedbackTable: tables.feedbackTable,
         feedbackBucket: buckets.feedbackBucket,
-        knowledgeBucket: buckets.kendraBucket
+        knowledgeBucket: buckets.kendraBucket,
+        knowledgeBase: knowledgeBase.knowledgeBase
       })
 
     const wsAuthorizer = new WebSocketLambdaAuthorizer('WebSocketAuthorizer', props.authentication.lambdaAuthorizer, {identitySource: ['route.request.querystring.Authorization']});
