@@ -45,7 +45,11 @@ export class KnowledgeBaseStack extends cdk.Stack {
       actions: [
         's3:*'
       ],
-      resources: [props.s3bucket.bucketArn, props.s3bucket.bucketArn + "/*"]
+      resources: [props.s3bucket.bucketArn,
+         props.s3bucket.bucketArn + "/*",
+        props.zendeskBucket.bucketArn,
+        props.zendeskBucket.bucketArn + "/*",
+      ]
     }));
 
     // add bedrock access to the role
