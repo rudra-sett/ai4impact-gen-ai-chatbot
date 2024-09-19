@@ -151,7 +151,7 @@ export class KnowledgeBaseStack extends cdk.Stack {
 
       },
       knowledgeBaseId: knowledgeBase.attrKnowledgeBaseId,
-      name: `${stackName}-kb-datasource`,
+      name: `${stackName}-kb-zendesk`,
 
       // the properties below are optional      
       description: 'Zendesk data source',
