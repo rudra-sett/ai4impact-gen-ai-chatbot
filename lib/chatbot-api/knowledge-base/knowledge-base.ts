@@ -1,6 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as path from 'path';
+import * as lambda from 'aws-cdk-lib/aws-lambda'
+import * as triggers from 'aws-cdk-lib/triggers'
+import * as cr from 'aws-cdk-lib/custom-resources'
 
 import { aws_opensearchserverless as opensearchserverless } from 'aws-cdk-lib';
 import { aws_bedrock as bedrock } from 'aws-cdk-lib';
@@ -10,9 +14,8 @@ import { stackName } from "../../constants"
 import { OpenSearchStack } from "../opensearch/opensearch"
 
 export interface KnowledgeBaseStackProps {
-  readonly openSearch: opensearchserverless.CfnCollection;
-  readonly s3bucket: s3.Bucket;
-  readonly knowledgeBaseRole: iam.Role;
+  readonly openSearch: OpenSearchStack,
+  readonly s3bucket : s3.Bucket
 }
 
 export class KnowledgeBaseStack extends cdk.Stack {
@@ -23,22 +26,20 @@ export class KnowledgeBaseStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: KnowledgeBaseStackProps) {
     super(scope, id);
 
-    // const openSearch = new OpenSearchStack(scope,"OpenSearchStack",{})
-
     // add AOSS access to the role
-    props.knowledgeBaseRole.addToPolicy(
+    props.openSearch.knowledgeBaseRole.addToPolicy(
       new iam.PolicyStatement({
         effect: iam.Effect.ALLOW,
         actions: ['aoss:APIAccessAll'],
         resources: [
-          `arn:aws:aoss:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:collection/${props.openSearch.attrId}`
+          `arn:aws:aoss:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:collection/${props.openSearch.openSearchCollection.attrId}`
         ]
       }
       )
     )
 
     // add s3 access to the role
-    props.knowledgeBaseRole.addToPolicy(new iam.PolicyStatement({
+    props.openSearch.knowledgeBaseRole.addToPolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: [
         's3:*'
@@ -47,7 +48,7 @@ export class KnowledgeBaseStack extends cdk.Stack {
     }));
 
     // add bedrock access to the role
-    props.knowledgeBaseRole.addToPolicy(new iam.PolicyStatement({
+    props.openSearch.knowledgeBaseRole.addToPolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['bedrock:InvokeModel'],
       resources: [
@@ -66,13 +67,13 @@ export class KnowledgeBaseStack extends cdk.Stack {
         },
       },
       name: `${stackName}-kb`,
-      roleArn: props.knowledgeBaseRole.roleArn,
+      roleArn: props.openSearch.knowledgeBaseRole.roleArn,
       storageConfiguration: {
         type: 'OPENSEARCH_SERVERLESS',
 
         // the properties below are optional
         opensearchServerlessConfiguration: {
-          collectionArn: props.openSearch.attrArn,
+          collectionArn: props.openSearch.openSearchCollection.attrArn,
           fieldMapping: {
             metadataField: 'metadata_field',
             textField: 'text_field',
@@ -86,8 +87,8 @@ export class KnowledgeBaseStack extends cdk.Stack {
       description: `Bedrock Knowledge Base for ${stackName}`,
     });
 
-    // props.openSearch.indexTrigger.executeBefore(knowledgeBase)
-    // knowledgeBase.node.addDependency(openSearch.indexTrigger);
+    knowledgeBase.addDependency(props.openSearch.openSearchCollection);
+    knowledgeBase.node.addDependency(props.openSearch.lambdaCustomResource)
 
     const dataSource = new bedrock.CfnDataSource(scope, 'S3DataSource', {
       dataSourceConfiguration: {
@@ -140,7 +141,7 @@ export class KnowledgeBaseStack extends cdk.Stack {
       },
     });
 
-    dataSource.addDependency(knowledgeBase);
+    dataSource.addDependency(knowledgeBase);    
 
     this.knowledgeBase = knowledgeBase;
     this.dataSource = dataSource;
