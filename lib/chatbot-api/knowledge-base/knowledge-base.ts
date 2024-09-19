@@ -16,6 +16,7 @@ import { OpenSearchStack } from "../opensearch/opensearch"
 export interface KnowledgeBaseStackProps {
   readonly openSearch: OpenSearchStack,
   readonly s3bucket : s3.Bucket
+  readonly zendeskBucket : s3.Bucket
 }
 
 export class KnowledgeBaseStack extends cdk.Stack {
@@ -141,7 +142,59 @@ export class KnowledgeBaseStack extends cdk.Stack {
       },
     });
 
-    dataSource.addDependency(knowledgeBase);    
+    const zendeskDataSource = new bedrock.CfnDataSource(scope, 'ZendeskDataSource', {
+      dataSourceConfiguration: {
+        type: 'S3',
+        s3Configuration: {
+          bucketArn: props.zendeskBucket.bucketArn,
+        },
+
+      },
+      knowledgeBaseId: knowledgeBase.attrKnowledgeBaseId,
+      name: `${stackName}-kb-datasource`,
+
+      // the properties below are optional      
+      description: 'Zendesk data source',
+      vectorIngestionConfiguration: {
+        chunkingConfiguration: {
+          chunkingStrategy: 'FIXED_SIZE',
+
+          // the properties below are optional
+          fixedSizeChunkingConfiguration: {
+            maxTokens: 350,
+            overlapPercentage: 10,
+          },
+
+          // hierarchicalChunkingConfiguration: {
+          //   levelConfigurations: [{
+          //     maxTokens: 123,
+          //   }],
+          //   overlapTokens: 123,
+          // },
+          // semanticChunkingConfiguration: {
+          //   breakpointPercentileThreshold: 123,
+          //   bufferSize: 123,
+          //   maxTokens: 123,
+          // },
+        },
+        // parsingConfiguration: {
+        //   parsingStrategy: 'parsingStrategy',
+
+        //   // the properties below are optional
+        //   bedrockFoundationModelConfiguration: {
+        //     modelArn: 'modelArn',
+
+        //     // the properties below are optional
+        //     parsingPrompt: {
+        //       parsingPromptText: 'parsingPromptText',
+        //     },
+        //   },
+        // },
+      },
+    });
+
+    dataSource.addDependency(knowledgeBase);   
+    zendeskDataSource.addDependency(knowledgeBase); 
 
     this.knowledgeBase = knowledgeBase;
     this.dataSource = dataSource;
