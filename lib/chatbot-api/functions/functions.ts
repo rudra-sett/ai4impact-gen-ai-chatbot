@@ -83,7 +83,7 @@ export class LambdaFunctionStack extends cdk.Stack {
           actions: [
             'bedrock:Retrieve'
           ],
-          resources: [props.knowledgeBase.attrKnowledgeBaseId]
+          resources: [props.knowledgeBase.attrKnowledgeBaseArn]
         }));
 
         websocketAPIFunction.addToRolePolicy(new iam.PolicyStatement({
