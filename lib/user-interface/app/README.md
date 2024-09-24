@@ -17,7 +17,6 @@ To edit the user interface explore the /src/components and /src/pages/chatbot fo
 Quick customizations:
 - To change the logo swap out the logo.png file.
 - /src/common/constants.ts change the name of the project on line 109.
-- /src/components/chatbot/chat-input-panel.tsx customize the system prompt on line 395 and input the kendra project id on line 403.
 
 # AWS Tools Used
 AWS Amplify
@@ -31,13 +30,13 @@ The back-end code is a series of AWS lambda functions that serve as connectors b
 # AWS Tools 
 AWS API GATEWAY (Websocket, REST, HTTP)
 AWS Lambda
-AWS Kendra
+AWS Knowledge Bases (Bedrock)
 AWS Bedrock
 - Connects to Lambda
 - Used for model access
 AWS Cognito
 S3
-- Connects to Kendra
+- Connects to Knowledge Bases
 - Used for knowledge management
 DynamoDB
 - Connects to Lambda

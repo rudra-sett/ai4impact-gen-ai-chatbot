@@ -2,11 +2,11 @@ import json
 import boto3
 import os
 
-# Retrieve environment variables for Kendra index and source index
+# Retrieve environment variables for Knowledge Base index and source index
 kb_index = os.environ['KB_ID']
 source_index = os.environ['SOURCE']
 
-# Initialize a Kendra client
+# Initialize a Bedrock Agent client
 client = boto3.client('bedrock-agent')
 
 def check_running():
@@ -104,7 +104,7 @@ def lambda_handler(event, context):
                 'body': json.dumps('Unable to check user role, please ensure you have Cognito configured correctly with a custom:role attribute.')
             }    
         
-    # Check if the request is for syncing Kendra
+    # Check if the request is for syncing Knowledge Base
     if "sync-kb" in resource_path:
         if check_running():
             print("1")
@@ -117,7 +117,7 @@ def lambda_handler(event, context):
         
         
         else:
-            # Check if the request is for syncing Kendra    
+            # Check if the request is for syncing Knowledge Base    
             print("2")
             client.start_ingestion_job(
                     dataSourceId=source_index,
