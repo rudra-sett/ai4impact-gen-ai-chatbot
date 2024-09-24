@@ -379,19 +379,7 @@ export default function ChatInputPanel(props: ChatInputPanelProps) {
         <div className={styles.input_controls_right}>
           <SpaceBetween direction="horizontal" size="xxs" alignItems="center">
             <div style={{ paddingTop: "1px" }}>              
-            </div>
-            <StatusIndicator
-              type={
-                readyState === ReadyState.OPEN
-                  ? "success"
-                  : readyState === ReadyState.CONNECTING ||
-                    readyState === ReadyState.UNINSTANTIATED
-                    ? "in-progress"
-                    : "error"
-              }
-            >
-              {readyState === ReadyState.OPEN ? "Connected" : connectionStatus}
-            </StatusIndicator>
+            </div>            
           </SpaceBetween>
         </div>
       </div>

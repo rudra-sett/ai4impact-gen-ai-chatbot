@@ -1,11 +1,5 @@
-import * as cognito from "aws-cdk-lib/aws-cognito";
-import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import * as s3 from "aws-cdk-lib/aws-s3";
-import * as sns from "aws-cdk-lib/aws-sns";
-import * as ssm from "aws-cdk-lib/aws-ssm";
-import * as iam from "aws-cdk-lib/aws-iam";
+
 import * as cdk from "aws-cdk-lib";
-import * as path from "path";
 
 import { AuthorizationStack } from '../authorization'
 
@@ -13,7 +7,6 @@ import { WebsocketBackendAPI } from "./gateway/websocket-api"
 import { RestBackendAPI } from "./gateway/rest-api"
 import { LambdaFunctionStack } from "./functions/functions"
 import { TableStack } from "./tables/tables"
-import { KendraIndexStack } from "./kendra/kendra"
 import { S3BucketStack } from "./buckets/buckets"
 
 import { WebSocketLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
@@ -43,11 +36,10 @@ export class ChatBotApi extends Construct {
 
     const tables = new TableStack(this, "TableStack");
     const buckets = new S3BucketStack(this, "BucketStack");
-    const kendra = new KendraIndexStack(this, "KendraStack", { s3Bucket: buckets.kendraBucket });
     
     const openSearch = new OpenSearchStack(this,"OpenSearchStack",{})
     const knowledgeBase = new KnowledgeBaseStack(this,"KnowledgeBaseStack",{ openSearch : openSearch,
-      s3bucket : buckets.kendraBucket})
+      s3bucket : buckets.knowledgeBucket})
 
     const restBackend = new RestBackendAPI(this, "RestBackend", {})
     this.httpAPI = restBackend;
@@ -57,13 +49,13 @@ export class ChatBotApi extends Construct {
     const lambdaFunctions = new LambdaFunctionStack(this, "LambdaFunctions",
       {
         wsApiEndpoint: websocketBackend.wsAPIStage.url,
-        sessionTable: tables.historyTable,
-        kendraIndex: kendra.kendraIndex,
-        kendraSource: kendra.kendraSource,
+        sessionTable: tables.historyTable,        
         feedbackTable: tables.feedbackTable,
         feedbackBucket: buckets.feedbackBucket,
-        knowledgeBucket: buckets.kendraBucket,
-        knowledgeBase: knowledgeBase.knowledgeBase
+        knowledgeBucket: buckets.knowledgeBucket,
+        knowledgeBase: knowledgeBase.knowledgeBase,
+        knowledgeBaseSource : knowledgeBase.dataSource,
+
       })
 
     const wsAuthorizer = new WebSocketLambdaAuthorizer('WebSocketAuthorizer', props.authentication.lambdaAuthorizer, {identitySource: ['route.request.querystring.Authorization']});
@@ -83,11 +75,7 @@ export class ChatBotApi extends Construct {
     websocketBackend.wsAPI.addRoute('$disconnect', {
       integration: new WebSocketLambdaIntegration('chatbotDisconnectionIntegration', lambdaFunctions.chatFunction),
       // authorizer: wsAuthorizer
-    });
-    websocketBackend.wsAPI.addRoute('generateEmail', {
-      integration: new WebSocketLambdaIntegration('emailIntegration', lambdaFunctions.chatFunction),
-      // authorizer: wsAuthorizer
-    });
+    });    
 
     websocketBackend.wsAPI.grantManageConnections(lambdaFunctions.chatFunction);
 
@@ -151,27 +139,27 @@ export class ChatBotApi extends Construct {
       authorizer: httpAuthorizer,
     })
 
-    const kendraSyncProgressAPIIntegration = new HttpLambdaIntegration('KendraSyncAPIIntegration', lambdaFunctions.syncKendraFunction);
+    const kbSyncProgressAPIIntegration = new HttpLambdaIntegration('KBSyncAPIIntegration', lambdaFunctions.syncKBFunction);
     restBackend.restAPI.addRoutes({
-      path: "/kendra-sync/still-syncing",
+      path: "/kb-sync/still-syncing",
       methods: [apigwv2.HttpMethod.GET],
-      integration: kendraSyncProgressAPIIntegration,
+      integration: kbSyncProgressAPIIntegration,
       authorizer: httpAuthorizer,
     })
 
-    const kendraSyncAPIIntegration = new HttpLambdaIntegration('KendraSyncAPIIntegration', lambdaFunctions.syncKendraFunction);
+    const kbSyncAPIIntegration = new HttpLambdaIntegration('KBSyncAPIIntegration', lambdaFunctions.syncKBFunction);
     restBackend.restAPI.addRoutes({
-      path: "/kendra-sync/sync-kendra",
+      path: "/kb-sync/sync-kb",
       methods: [apigwv2.HttpMethod.GET],
-      integration: kendraSyncAPIIntegration,
+      integration: kbSyncAPIIntegration,
       authorizer: httpAuthorizer,
     })
     
-    const kendraLastSyncAPIIntegration = new HttpLambdaIntegration('KendraLastSyncAPIIntegration', lambdaFunctions.syncKendraFunction);
+    const kbLastSyncAPIIntegration = new HttpLambdaIntegration('KBLastSyncAPIIntegration', lambdaFunctions.syncKBFunction);
     restBackend.restAPI.addRoutes({
-      path: "/kendra-sync/get-last-sync",
+      path: "/kb-sync/get-last-sync",
       methods: [apigwv2.HttpMethod.GET],
-      integration: kendraLastSyncAPIIntegration,
+      integration: kbLastSyncAPIIntegration,
       authorizer: httpAuthorizer,
     })
 

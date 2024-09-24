@@ -3,11 +3,11 @@ import boto3
 import os
 
 # Retrieve environment variables for Kendra index and source index
-kendra_index = os.environ['KENDRA']
+kb_index = os.environ['KB_ID']
 source_index = os.environ['SOURCE']
 
 # Initialize a Kendra client
-client = boto3.client('kendra')
+client = boto3.client('bedrock-agent')
 
 def check_running():
     """
@@ -17,34 +17,52 @@ def check_running():
         bool: True if there are any ongoing sync or sync-indexing jobs, False otherwise.
     """
     # List ongoing sync jobs with status 'SYNCING'
-    syncing = client.list_data_source_sync_jobs(
-        Id=source_index,
-        IndexId=kendra_index,
-        StatusFilter='SYNCING'
+    syncing = client.list_ingestion_jobs(
+        dataSourceId=source_index,
+        knowledgeBaseId=kb_index,
+        filters=[{
+            'attribute': 'STATUS',
+            'operator': 'EQ',
+            'values': [
+                'IN_PROGRESS',
+            ]
+        }]
     )
     
-    # List ongoing sync jobs with status 'SYNCING_INDEXING'
-    syncing_indexing = client.list_data_source_sync_jobs(
-        Id=source_index,
-        IndexId=kendra_index,
-        StatusFilter='SYNCING_INDEXING'
+    # List ongoing sync jobs with status 'STARTING'
+    starting = client.list_ingestion_jobs(
+        dataSourceId=source_index,
+        knowledgeBaseId=kb_index,
+        filters=[{
+            'attribute': 'STATUS',
+            'operator': 'EQ',
+            'values': [
+                'STARTING',
+            ]
+        }]
     )
     
     # Combine the history of both job types
-    hist = syncing_indexing['History'] + syncing['History']
+    hist = starting['ingestionJobSummaries'] + syncing['ingestionJobSummaries']
     
     # Check if there are any jobs in the history
     if len(hist) > 0:
         return True
 
 def get_last_sync():    
-    syncs = client.list_data_source_sync_jobs(
-        Id=source_index,
-        IndexId=kendra_index,
-        StatusFilter='SUCCEEDED'
+    syncs = client.list_ingestion_jobs(
+        dataSourceId=source_index,
+        knowledgeBaseId=kb_index,
+        filters=[{
+            'attribute': 'STATUS',
+            'operator': 'EQ',
+            'values': [
+                'COMPLETE',
+            ]
+        }]
     )
-    hist = syncs["History"]
-    time = hist[0]["EndTime"].strftime('%B %d, %Y, %I:%M%p UTC')
+    hist = syncs["ingestionJobSummaries"]
+    time = hist[0]["updatedAt"].strftime('%B %d, %Y, %I:%M%p UTC')
     return {
                 'statusCode': 200,
                 'headers': {'Access-Control-Allow-Origin': '*'},
@@ -87,7 +105,7 @@ def lambda_handler(event, context):
             }    
         
     # Check if the request is for syncing Kendra
-    if "sync-kendra" in resource_path:
+    if "sync-kb" in resource_path:
         if check_running():
             print("1")
 
@@ -101,9 +119,9 @@ def lambda_handler(event, context):
         else:
             # Check if the request is for syncing Kendra    
             print("2")
-            client.start_data_source_sync_job(
-                    Id=source_index,
-                    IndexId=kendra_index
+            client.start_ingestion_job(
+                    dataSourceId=source_index,
+                    knowledgeBaseId=kb_index
             )
         
             return {
