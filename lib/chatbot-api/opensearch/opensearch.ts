@@ -102,7 +102,7 @@ export class OpenSearchStack extends cdk.Stack {
 
     const openSearchCreateIndexFunction = new lambda.Function(scope, 'OpenSearchCreateIndexFunction', {
       runtime: lambda.Runtime.PYTHON_3_12, // Choose any supported Node.js runtime
-      code: lambda.Code.fromAsset(path.join(__dirname, '../opensearch/create-index-lambda'),
+      code: lambda.Code.fromAsset(path.join(__dirname, 'create-index-lambda'),
         {
           bundling: {
             image: lambda.Runtime.PYTHON_3_12.bundlingImage,
