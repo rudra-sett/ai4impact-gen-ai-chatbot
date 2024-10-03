@@ -28,8 +28,8 @@ export const languageList = [
 ];
 
 export const feedbackCategories = [
-  {label: "Example 1", value:"rp", disabled: false},
-  {label: "Example 2", value:"rf", disabled: false},  
+  {label: "Acts", value:"acts", disabled: false},
+  {label: "Resolves", value:"resolves", disabled: false},  
 ]
 
 export const feedbackTypes = [
@@ -41,4 +41,4 @@ export const feedbackTypes = [
   {label: "Other", value:"other", disabled: false}
 ]
 
-export const CHATBOT_NAME = "RAG AI Chatbot";
+export const CHATBOT_NAME = "GLO AI Chatbot";
