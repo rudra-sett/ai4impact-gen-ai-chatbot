@@ -1,0 +1,64 @@
+name: Deploy Chatbot
+
+on:
+  push:
+    branches:
+      - glo-test  # or 'master' if you're using the master branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Check out the repository's code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Set up Node.js with the version required by your project
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'  # Use Node.js version 20.x, which is compatible with "@types/node": "20.12.7"
+
+    # Step 3: Install backend dependencies (from the root folder)
+    - name: Install backend dependencies
+      run: npm install  # No need to cd into highway-dotbot
+
+    # Step 4: Install frontend dependencies (in 'lib/user-interface/app')
+    - name: Install frontend dependencies
+      run: |
+        cd lib/user-interface/app
+        npm install
+
+    # Step 5: Configure AWS credentials
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    # Step 6: Bootstrap the AWS environment (from the root folder)
+    - name: Bootstrap AWS environment
+      run: npx cdk bootstrap
+
+    # Step 7: Deploy the CDK stack (from the root folder)
+    - name: Deploy CDK stack
+      run: npx cdk deploy glo-test-stack --require-approval never  # Replace "My stack name" with your actual stack name
+
+    # Step 8: Fetch CloudFormation outputs and save to a file
+    - name: Fetch CloudFormation Outputs
+      run: |
+        aws cloudformation describe-stacks --stack-name glo-test-stack --query "Stacks[0].Outputs" > stack-outputs.json
+        cat stack-outputs.json  # Just to verify in logs if needed
+
+    # Step 9: Upload the output file as an artifact (optional)
+    - name: Upload Outputs as Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: stack-outputs
+        path: stack-outputs.json
+
+
+
+
