@@ -63,8 +63,8 @@ export class LambdaFunctionStack extends cdk.Stack {
           handler: 'index.handler', // Points to the 'hello' file in the lambda directory
           environment : {
             "WEBSOCKET_API_ENDPOINT" : props.wsApiEndpoint.replace("wss","https"),            
-            "PROMPT" : `You are a helpful AI chatbot that will answer questions based on your knowledge. 
-            You have access to a search tool that you will use to look up answers to questions.`,
+            "PROMPT" : `You are a helpful AI chatbot that will answer questions related to Acts and Resolves based on your knowledge. 
+            You have access to a search tool that you will use to look up answers to questions. If a user asks for a specific chapter, use the chapter retrieval tool rather than the general search tool.`,
             'KB_ID' : props.knowledgeBase.attrKnowledgeBaseId
           },
           timeout: cdk.Duration.seconds(300)
