@@ -5,6 +5,8 @@ import { Attribute, AttributeType, Table, ProjectionType } from 'aws-cdk-lib/aws
 export class TableStack extends Stack {
   public readonly historyTable : Table;
   public readonly feedbackTable : Table;
+  public readonly amendmentTable : Table;
+
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
@@ -44,6 +46,21 @@ export class TableStack extends Stack {
       projectionType: ProjectionType.ALL,
     });
 
-    this.feedbackTable = userFeedbackTable;    
+    this.feedbackTable = userFeedbackTable;
+    
+    // Define the second table (UserFeedbackTable)
+    const amendmentTrackingTable = new Table(scope, 'AmemendmentTable', {
+      partitionKey: { name: 'Amended', type: AttributeType.STRING },
+      sortKey: { name: 'AmendedBy', type: AttributeType.STRING },
+    });
+
+    // Add a global secondary index to UserFeedbackTable with partition key CreatedAt
+    amendmentTrackingTable.addGlobalSecondaryIndex({
+      indexName: 'AmendedByIndex',
+      partitionKey: { name: 'AmendedBy', type: AttributeType.STRING },
+      projectionType: ProjectionType.ALL,
+    });
+
+    this.amendmentTable = amendmentTrackingTable;
   }
 }
