@@ -93,6 +93,14 @@ export class LambdaFunctionStack extends cdk.Stack {
           ],
           resources: [this.sessionFunction.functionArn]
         }));
+
+        websocketAPIFunction.addToRolePolicy(new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: [
+            's3:GetObject'
+          ],
+          resources: ["arn:aws:s3:::glo-processed","arn:aws:s3:::glo-processed/*"]
+        }));
         
         this.chatFunction = websocketAPIFunction;
 
