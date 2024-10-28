@@ -8,6 +8,9 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as bedrock from "aws-cdk-lib/aws-bedrock";
+import { aws_opensearchserverless as opensearchserverless } from 'aws-cdk-lib';
+
+import { stackName } from "../../constants"
 
 interface LambdaFunctionStackProps {  
   readonly wsApiEndpoint : string;  
@@ -17,6 +20,7 @@ interface LambdaFunctionStackProps {
   readonly knowledgeBucket : s3.Bucket;
   readonly knowledgeBase : bedrock.CfnKnowledgeBase;
   readonly knowledgeBaseSource: bedrock.CfnDataSource;
+  readonly openSearch : opensearchserverless.CfnCollection
 }
 
 export class LambdaFunctionStack extends cdk.Stack {  
@@ -68,8 +72,11 @@ export class LambdaFunctionStack extends cdk.Stack {
             In general, prioritize using the tool that looks for a specific act. If the user asks a follow-up question that references a specific act, use the get_act_or_resolve tool.
 
             Essentially, any time a specific year and chapter are mentioned, you should try to use the tool for retrieving a specfic act or resolve.
-            Next, If you retrieve any act directly, please list always list out any amendments this act makes, and also do an additional search for any acts that amend the current act. `,
-            'KB_ID' : props.knowledgeBase.attrKnowledgeBaseId
+            Next, If you retrieve any act directly, please list always list out any amendments this act makes, and also do an additional search using the find references tool for any acts that amend the current act. 
+            
+            If the user directly asks what acts amend a specific act, resolve, or general law, use the tool for that as well.`,
+            'KB_ID' : props.knowledgeBase.attrKnowledgeBaseId,
+            "OPENSEARCH_ENDPOINT" : props.openSearch.attrCollectionEndpoint
           },
           timeout: cdk.Duration.seconds(300)
         });
@@ -106,6 +113,51 @@ export class LambdaFunctionStack extends cdk.Stack {
           ],
           resources: ["arn:aws:s3:::glo-processed","arn:aws:s3:::glo-processed/*"]
         }));
+
+        websocketAPIFunction.addToRolePolicy(new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: [
+            'aoss:BatchGetCollection',
+            'aoss:APIAccessAll'
+          ],
+          resources: ["*"]
+        }));
+
+        const wsAccessPolicy = new opensearchserverless.CfnAccessPolicy(scope, "WSOSSAccessPolicy", {
+          name: `${stackName.toLowerCase().slice(0,8)}-ws-oss-access-policy`,
+          type: "data",
+          policy : JSON.stringify([
+            {
+                "Rules": [
+                    {
+                        "ResourceType": "index",
+                        "Resource": [
+                            `index/${stackName.toLowerCase()}-oss-collection/*`,
+                        ],
+                        "Permission": [
+                            "aoss:UpdateIndex",
+                            "aoss:DescribeIndex",
+                            "aoss:ReadDocument",
+                            "aoss:WriteDocument",
+                            "aoss:CreateIndex",
+                        ],
+                    },
+                    {
+                        "ResourceType": "collection",
+                        "Resource": [
+                            `collection/${stackName.toLowerCase()}-oss-collection`,
+                        ],
+                        "Permission": [
+                            "aoss:DescribeCollectionItems",
+                            "aoss:CreateCollectionItems",
+                            "aoss:UpdateCollectionItems",
+                        ],
+                    },
+                ],
+                "Principal": [websocketAPIFunction.role?.roleArn]
+            }
+        ])
+        })
         
         this.chatFunction = websocketAPIFunction;
 

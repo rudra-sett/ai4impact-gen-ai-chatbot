@@ -1,0 +1,16 @@
+{
+  "name": "websocket-chat",
+  "version": "1.0.0",
+  "description": "Handles chatbot interactions via Websockets.",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@opensearch-project/opensearch": "^2.12.0",
+    "install": "^0.13.0",
+    "npm": "^10.9.0"
+  }
+}

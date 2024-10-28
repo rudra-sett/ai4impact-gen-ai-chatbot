@@ -55,6 +55,7 @@ export class ChatBotApi extends Construct {
         knowledgeBucket: buckets.knowledgeBucket,
         knowledgeBase: knowledgeBase.knowledgeBase,
         knowledgeBaseSource : knowledgeBase.dataSource,
+        openSearch : openSearch.openSearchCollection
 
       })
 
