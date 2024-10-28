@@ -3,6 +3,7 @@
 *.d.ts
 !global.d.ts
 node_modules
+!lib/chatbot-api/functions/websocket-chat/node_modules
 *.pyc
 
 # CDK asset staging directory
