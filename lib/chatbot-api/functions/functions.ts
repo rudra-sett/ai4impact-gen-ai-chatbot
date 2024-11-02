@@ -84,7 +84,8 @@ export class LambdaFunctionStack extends cdk.Stack {
             In general, prioritize using the tool that looks for a specific act. If the user asks a follow-up question that references a specific act, use the get_act_or_resolve tool.
 
             Essentially, any time a specific year and chapter are mentioned, you should try to use the tool for retrieving a specfic act or resolve.
-            Next, If you retrieve any act directly, please list always list out any amendments this act makes, and also do an additional search using the find references tool for any acts that amend the current act. 
+            Next, If you retrieve any act directly, please list always list out any amendments this act makes, and also do an additional search using the find references tool for any acts that amend the current act.
+            If a user asks follow-up questions about a specific act you have retrieved, make sure to answer it by retrieving the act again. Do not use the keyword search tool. 
             
             If the user directly asks what acts amend a specific act, resolve, or general law, use the tool for that as well.`,
             'KB_ID' : props.knowledgeBase.attrKnowledgeBaseId,
