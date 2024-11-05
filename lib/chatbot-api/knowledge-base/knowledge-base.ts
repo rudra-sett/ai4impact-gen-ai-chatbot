@@ -23,6 +23,7 @@ export class KnowledgeBaseStack extends cdk.Stack {
 
   public readonly knowledgeBase: bedrock.CfnKnowledgeBase;
   public readonly dataSource: bedrock.CfnDataSource;
+  public readonly zendeskDataSource: bedrock.CfnDataSource;
 
   constructor(scope: Construct, id: string, props: KnowledgeBaseStackProps) {
     super(scope, id);
@@ -202,5 +203,6 @@ export class KnowledgeBaseStack extends cdk.Stack {
 
     this.knowledgeBase = knowledgeBase;
     this.dataSource = dataSource;
+    this.zendeskDataSource = zendeskDataSource;
   }
 }

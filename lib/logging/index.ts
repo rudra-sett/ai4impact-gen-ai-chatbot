@@ -54,16 +54,16 @@ export class LoggingStack extends Construct {
       defaultValue: 0    
     })
 
-    const chatModelKendraRelevancyFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRelevancyFilter", {      
+    const chatModelKBRelevancyFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKBRelevancyFilter", {      
       metricNamespace: 'Chat Handler',
-      metricName: 'Kendra Relevancy Errors',
+      metricName: 'KB Relevancy Errors',
       filterPattern: logs.FilterPattern.anyTerm('no relevant sources'), 
       defaultValue: 0     
     })
 
-    const chatModelKendraRetrieveFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKendraRetrieveFilter", {      
+    const chatModelKBRetrieveFilter = props.chatFunction.logGroup.addMetricFilter("ChatHandlerKBRetrieveFilter", {      
       metricNamespace: 'Chat Handler',
-      metricName: 'Kendra Retrieval Errors',
+      metricName: 'KB Retrieval Errors',
       filterPattern: logs.FilterPattern.anyTerm('could not retreive'),    
       defaultValue: 0  
     })
@@ -77,8 +77,8 @@ export class LoggingStack extends Construct {
 
     const zendeskSyncFilter = props.zendeskFunction.logGroup.addMetricFilter("ZendeskSyncFilter", {      
       metricNamespace: 'Zendesk Sync',
-      metricName: 'Kendra Sync Errors',
-      filterPattern: logs.FilterPattern.anyTerm('Kendra sync error'),  
+      metricName: 'KB Sync Errors',
+      filterPattern: logs.FilterPattern.anyTerm('KB sync error'),  
       defaultValue: 0    
     })
 
@@ -125,8 +125,8 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 20,
       evaluationPeriods: 1,
-      alarmDescription : "Activates when Kendra repeatedly retrieves irrelevant data.",
-      metric: chatModelKendraRelevancyFilter.metric({statistic : "sum"})
+      alarmDescription : "Activates when KB repeatedly retrieves irrelevant data.",
+      metric: chatModelKBRelevancyFilter.metric({statistic : "sum"})
     });
     alarms.push(chatHandlerRelevancyAlarm)
 
@@ -134,8 +134,8 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 20,
       evaluationPeriods: 1,
-      alarmDescription : "Activates when Kendra is repeatedly unable to retrieve any data.",
-      metric: chatModelKendraRetrieveFilter.metric({statistic : "sum"})
+      alarmDescription : "Activates when KB is repeatedly unable to retrieve any data.",
+      metric: chatModelKBRetrieveFilter.metric({statistic : "sum"})
     });
     alarms.push(chatHandlerRetrieveAlarm)
     
@@ -152,7 +152,7 @@ export class LoggingStack extends Construct {
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       threshold: 2,
       evaluationPeriods: 1,
-      alarmDescription : "Activates when Kendra is unable to sync with Zendesk data.",
+      alarmDescription : "Activates when KB is unable to sync with Zendesk data.",
       metric: zendeskSyncFilter.metric({statistic : "sum"})
     });
     alarms.push(zendeskSyncAlarm)

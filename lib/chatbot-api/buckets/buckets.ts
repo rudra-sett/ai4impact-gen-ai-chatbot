@@ -3,7 +3,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import { Construct } from "constructs";
 
 export class S3BucketStack extends cdk.Stack {
-  public readonly kendraBucket: s3.Bucket;
+  public readonly knowledgeBucket: s3.Bucket;
   public readonly feedbackBucket: s3.Bucket;
   public readonly zendeskBucket: s3.Bucket;
 
@@ -11,7 +11,8 @@ export class S3BucketStack extends cdk.Stack {
     super(scope, id, props);
 
     // Create a new S3 bucket
-    this.kendraBucket = new s3.Bucket(scope, 'KendraSourceBucket', {
+    // TODO: change this to KB, but we can't because it'll delete existing buckets in live deployments
+    this.knowledgeBucket = new s3.Bucket(scope, 'KendraSourceBucket', {
       versioned: true,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,

@@ -20,7 +20,7 @@ export class GenAiMvpStack extends cdk.Stack {
     */
     const authentication = new AuthorizationStack(this, "Authorization")
     /** The API/backend module
-     * This contains the Lambda functions, Kendra Index, S3 Buckets, DynamoDB tables, etc.
+     * This contains the Lambda functions, Knowledge Base, S3 Buckets, DynamoDB tables, etc.
      */
     const chatbotAPI = new ChatBotApi(this, "ChatbotAPI", { authentication });
 
