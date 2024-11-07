@@ -123,6 +123,7 @@ export default function Chat(props: { sessionId?: string }) {
     if (!appContext) return;
     const apiClient = new ApiClient(appContext);
     const text = await apiClient.acts.getAct(year, act);
+    setActText(text);
 
   }
 
