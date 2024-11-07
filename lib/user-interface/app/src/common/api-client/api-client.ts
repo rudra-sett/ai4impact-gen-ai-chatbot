@@ -2,15 +2,24 @@ import { AppConfig } from "../types";
 import { SessionsClient } from "./sessions-client";
 import { KnowledgeManagementClient } from "./knowledge-management-client";
 import { UserFeedbackClient } from "./user-feedback-client";
+import { ActsClient } from "./acts-client";
 
 export class ApiClient {
 
   private _sessionsClient: SessionsClient | undefined;
-
+  private _actsClient : ActsClient | undefined;
   private _knowledgeManagementClient : KnowledgeManagementClient | undefined;
   private _userFeedbackClient: UserFeedbackClient | undefined;
 
  
+  /** Construct the Acts sub-client */
+  public get acts() {
+    if (!this._actsClient) {
+      this._actsClient = new ActsClient(this._appConfig);      
+    }
+
+    return this._actsClient;
+  }
 
   /** Construct the Knowledge Management sub-client */
   public get knowledgeManagement() {

@@ -31,9 +31,30 @@ export class LambdaFunctionStack extends cdk.Stack {
   public readonly getS3Function : lambda.Function;
   public readonly uploadS3Function : lambda.Function;
   public readonly syncKBFunction : lambda.Function;
+  public readonly retrieveActFunction : lambda.Function;
 
   constructor(scope: Construct, id: string, props: LambdaFunctionStackProps) {
     super(scope, id);    
+
+    const retrieveActFunction = new lambda.Function(scope, 'ActRetrievalFunction', {
+      runtime: lambda.Runtime.PYTHON_3_12, // Choose any supported Node.js runtime
+      code: lambda.Code.fromAsset(path.join(__dirname, 'retrieve-act')), // Points to the lambda directory
+      handler: 'lambda_function.lambda_handler', // Points to the 'hello' file in the lambda directory
+      environment: {
+        "ACTS_BUCKET" : 'glo-processed'
+      },
+      timeout: cdk.Duration.seconds(30)
+    });
+
+    retrieveActFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        's3:*'
+      ],
+      resources: ["arn:aws:s3:::glo-processed","arn:aws:s3:::glo-processed/*"]
+    }));
+
+    this.retrieveActFunction = retrieveActFunction;
 
     const sessionAPIHandlerFunction = new lambda.Function(scope, 'SessionHandlerFunction', {
       runtime: lambda.Runtime.PYTHON_3_12, // Choose any supported Node.js runtime

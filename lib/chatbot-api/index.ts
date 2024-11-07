@@ -85,6 +85,14 @@ export class ChatBotApi extends Construct {
       jwtAudience: [props.authentication.userPoolClient.userPoolClientId],
     })
 
+    const actsAPIIntegration = new HttpLambdaIntegration('ActsAPIIntegration', lambdaFunctions.retrieveActFunction);
+    restBackend.restAPI.addRoutes({
+      path: "/get-act",
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.POST, apigwv2.HttpMethod.DELETE],
+      integration: actsAPIIntegration,
+      authorizer: httpAuthorizer,
+    })
+
     const sessionAPIIntegration = new HttpLambdaIntegration('SessionAPIIntegration', lambdaFunctions.sessionFunction);
     restBackend.restAPI.addRoutes({
       path: "/user-session",
