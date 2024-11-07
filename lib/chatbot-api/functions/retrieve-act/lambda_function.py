@@ -37,11 +37,14 @@ def get_act(year, chapter):
     return " ".join(chunks)
 
 
-def lambda_handler(event):
+def lambda_handler(event, context):
   data = json.loads(event['body'])
   year = data['year']
   chapter = data['chapter']
 
+  print(f"year: {year}")
+  print(f"chapter: {chapter}")
+  
   try:
     text = get_act(year,chapter)
 

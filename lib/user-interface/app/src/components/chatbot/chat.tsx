@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, Fragment } from "react";
 import {
   ChatBotHistoryItem,
   ChatBotMessageType,
@@ -173,21 +173,27 @@ export default function Chat(props: { sessionId?: string }) {
         </div>
         <div>
           <div className={styles.chat_container}>
-          <TextContent>
-            {actText}
-          </TextContent>
+            <TextContent>
+              {/* {actText} */}
+              {actText.split('\n').map((line, index) => (
+                <Fragment key={index}>
+                  {line}
+                  <br />
+                </Fragment>
+              ))}
+            </TextContent>
           </div>
           <div className={styles.input_container}>
-          <SpaceBetween direction="horizontal" size="xs">
-            <Input
-              onChange={({ detail }) => setYear(detail.value)}
-              value={year}
-            />
-            <Input
-              onChange={({ detail }) => setAct(detail.value)}
-              value={act}
-            />
-            <Button variant="primary" onClick={getAct} >Retrieve</Button>
+            <SpaceBetween direction="horizontal" size="xs">
+              <Input
+                onChange={({ detail }) => setYear(detail.value)}
+                value={year}
+              />
+              <Input
+                onChange={({ detail }) => setAct(detail.value)}
+                value={act}
+              />
+              <Button variant="primary" onClick={getAct} >Retrieve</Button>
             </SpaceBetween>
           </div>
         </div>
