@@ -2,46 +2,118 @@ import BaseAppLayout from "../../../components/base-app-layout";
 import Chat from "../../../components/chatbot/chat";
 
 import { Link, useParams } from "react-router-dom";
-import { Header, HelpPanel } from "@cloudscape-design/components";
+import { Header, Cards, CollectionPreferences, Box, Pagination, Spinner } from "@cloudscape-design/components";
+import { useState } from 'react'
 
 export default function Playground() {
   const { sessionId } = useParams();
+  const [amendments, setAmendments] = useState([])
 
-  return (    
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [currentPageIndex, setCurrentPageIndex] = useState(1);
+
+  const [loading, setLoading] = useState(false);
+
+  // if (loading) {
+  //   return (
+      
+  //   );
+  // }
+
+
+  return (
     <BaseAppLayout
       info={
-        <HelpPanel header={<Header variant="h3">Using the chat</Header>}>
-          <p>
-            This is a customizable chatbot application capable of both answering general questions
-            as well as referencing custom documents in order to fit a specific business use-case.
-          </p>
-          <h3>Feedback</h3>
-          <p>
-            You can submit feedback on every response. Negative feedback will consist of a category (depends on the use-case of the chatbot),
-            a type of issue, and some written comments. Admin users can view all feedback on a dedicated
-            page. Sources (if part of the original response) will be included with the feedback submission.
-          </p>
-          <h3>Sources</h3>
-          <p>
-            If the chatbot references any files (uploaded by admin users), they will show up
-            underneath the relevant message. Admin users have access to a portal to add or delete
-            files. 
-          </p>
-          <h3>Session history</h3>
-          <p>
-            All conversations are saved and can be later accessed via {" "}
-            <Link to="/chatbot/sessions">Sessions</Link>.
-          </p>
-        </HelpPanel>
+        <Cards
+          onSelectionChange={({ detail }) => setSelectedItems(detail.selectedItems)}
+          selectedItems={selectedItems}
+          ariaLabels={{
+            itemSelectionLabel: (e, item) => `select ${item.amending_act}`,
+            selectionGroupLabel: "Item selection",
+          }}
+          cardDefinition={{
+            header: (item) => (
+              // <Link ref="#" fontSize="heading-m">
+              <p>
+                {item.amending_act}
+              </p>
+            ),
+            sections: [
+              {
+                id: "description",
+                header: "Amendment Description",
+                content: (item) => item.amendment_description,
+              },
+            ],
+          }}
+          cardsPerRow={[{ cards: 1 }, { minWidth: 500, cards: 2 }]}
+          items={amendments}
+          loadingText="Loading amendments..."
+          selectionType="multi"
+          trackBy="amending_act"
+          visibleSections={["description"]}
+          loading={loading}
+          empty={
+            <Box margin={{ vertical: "xs" }} textAlign="center" color="inherit">
+              <b>No amendments found</b>
+            </Box>
+          }
+          // filter={<TextFilter filteringPlaceholder="Search amendments" />}
+          header={
+            <Header
+              counter={
+                selectedItems.length
+                  ? `(${selectedItems.length}/${amendments.length})`
+                  : `(${amendments.length})`
+              }
+            >
+              Amendments
+            </Header>
+          }
+          pagination={
+            <Pagination
+              currentPageIndex={currentPageIndex}
+              pagesCount={Math.ceil(amendments.length / 6)}
+              onChange={({ detail }) => setCurrentPageIndex(detail.currentPageIndex)}
+            />
+          }
+          preferences={
+            <CollectionPreferences
+              title="Preferences"
+              confirmLabel="Confirm"
+              cancelLabel="Cancel"
+              preferences={{
+                pageSize: 6,
+                visibleContent: ["description"],
+              }}
+              pageSizePreference={{
+                title: "Page size",
+                options: [
+                  { value: 6, label: "6 items" },
+                  { value: 12, label: "12 items" },
+                ],
+              }}
+              visibleContentPreference={{
+                title: "Select visible content",
+                options: [
+                  {
+                    label: "Card content",
+                    options: [{ id: "description", label: "Amendment Description" }],
+                  },
+                ],
+              }}
+            />
+          }
+        />
       }
-      toolsWidth={300}       
+      toolsWidth={300}
       content={
-       <div>
-      {/* <Chat sessionId={sessionId} /> */}
-      
-      <Chat sessionId={sessionId} />
-      </div>
-     }
-    />    
+        <div>
+          {/* <Chat sessionId={sessionId} /> */}
+
+          <Chat sessionId={sessionId} setAmendments={setAmendments} setLoading={setLoading}/>
+        </div>
+      }
+    />
   );
 }

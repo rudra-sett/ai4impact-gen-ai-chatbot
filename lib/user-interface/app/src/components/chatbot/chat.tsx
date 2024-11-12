@@ -14,8 +14,13 @@ import ChatInputPanel, { ChatScrollState } from "./chat-input-panel";
 import styles from "../../styles/chat.module.scss";
 import { CHATBOT_NAME } from "../../common/constants";
 import { useNotifications } from "../notif-manager";
+import { Utils } from "../../common/utils";
 
-export default function Chat(props: { sessionId?: string }) {
+export default function Chat(props: {
+  sessionId?: string,
+  setAmendments: React.Dispatch<React.SetStateAction<any[]>>,
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>
+}) {
   const appContext = useContext(AppContext);
   const [running, setRunning] = useState<boolean>(true);
   const [session, setSession] = useState<{ id: string; loading: boolean }>({
@@ -124,7 +129,80 @@ export default function Chat(props: { sessionId?: string }) {
     const apiClient = new ApiClient(appContext);
     const text = await apiClient.acts.getAct(year, act);
     setActText(text);
+    getAmendments();
+  }
 
+  const getAmendments = async () => {
+    let username: string;
+    await Auth.currentAuthenticatedUser().then((value) => username = value.username);
+    if (!username) return;
+
+    try {
+      setRunning(true);
+      props.setLoading(true);
+      let receivedData = {};
+
+      const WS_URL = appContext.wsEndpoint + "/"
+
+      // Get a JWT token for the API to authenticate on      
+      const TOKEN = await Utils.authenticate()
+
+      const wsUrl = WS_URL + '?Authorization=' + TOKEN;
+      const ws = new WebSocket(wsUrl);
+
+      // Event listener for when the connection is open
+      ws.addEventListener('open', function open() {
+        console.log('Connected to the WebSocket server');
+        const message = JSON.stringify({
+          "action": "getChatbotResponse",
+          "data": {
+            userMessage: `Please return a structured list of amendments for chapter ${act} of the acts of ${year} using send_amendments_to_client.`,
+            chatHistory: [],
+            user_id: username,
+            doNotSave: true,
+            session_id: session.id,
+          }
+        });
+
+        ws.send(message);
+
+      });
+      // Event listener for incoming messages
+      ws.addEventListener('message', async function incoming(data) {
+        /**This is a custom tag from the API that denotes that an error occured
+         * and the next chunk will be an error message. */
+        if (data.data.includes("<!ERROR!>:")) {
+          addNotification("error", data.data);
+          ws.close();
+          return;
+        }
+
+        if (data.data.includes("amending_act")) {
+          // this is the object with the amendments! 
+          receivedData = JSON.parse(data.data)
+          props.setAmendments(receivedData as any[])
+        }
+
+      });
+      // Handle possible errors
+      ws.addEventListener('error', function error(err) {
+        setRunning(false);
+        props.setLoading(false);
+        console.error('WebSocket error:', err);
+      });
+      // Handle WebSocket closure
+      ws.addEventListener('close', async function close() {
+        setRunning(false);
+        props.setLoading(false);
+        console.log('Disconnected from the WebSocket server');
+      });
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Sorry, something has gone horribly wrong! Please try again or refresh the page.');
+      setRunning(false);
+      props.setLoading(false);
+    }
   }
 
   return (
@@ -194,6 +272,7 @@ export default function Chat(props: { sessionId?: string }) {
                 value={act}
               />
               <Button variant="primary" onClick={getAct} >Retrieve</Button>
+              {/* <Button variant="primary" onClick={getAmendments} >Amendments</Button> */}
             </SpaceBetween>
           </div>
         </div>
