@@ -30,4 +30,23 @@ export class ActsClient {
     const result = await response.json();
     return result;
   }
+
+  async searchLaws(query: string) {
+    const auth = await Utils.authenticate();
+    const response = await fetch(this.API + '/search-laws', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization' : auth
+      },
+      body: JSON.stringify({
+        query: query,        
+      }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get laws');
+    }
+    const result = await response.json();
+    return result;
+  }
 }

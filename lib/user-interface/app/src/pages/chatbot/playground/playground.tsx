@@ -2,8 +2,9 @@ import BaseAppLayout from "../../../components/base-app-layout";
 import Chat from "../../../components/chatbot/chat";
 
 import { Link, useParams } from "react-router-dom";
-import { Header, Cards, CollectionPreferences, Box, Pagination, Spinner } from "@cloudscape-design/components";
+import { Header, Cards, CollectionPreferences, Box, Pagination, Spinner, Tabs } from "@cloudscape-design/components";
 import { useState } from 'react'
+import Search from "../../../components/search/search";
 
 export default function Playground() {
   const { sessionId } = useParams();
@@ -110,8 +111,19 @@ export default function Playground() {
       content={
         <div>
           {/* <Chat sessionId={sessionId} /> */}
-
-          <Chat sessionId={sessionId} setAmendments={setAmendments} setLoading={setLoading}/>
+          <Tabs
+        tabs={[
+          { label: "Chat",
+            id: "chat",
+            content: <Chat sessionId={sessionId} setAmendments={setAmendments} setLoading={setLoading}/>
+          },
+          {
+            label: "Search",
+            id: "search",
+            content : <Search/>
+          }
+        ]}>
+        </Tabs>
         </div>
       }
     />

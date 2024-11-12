@@ -32,10 +32,31 @@ export class LambdaFunctionStack extends cdk.Stack {
   public readonly uploadS3Function : lambda.Function;
   public readonly syncKBFunction : lambda.Function;
   public readonly retrieveActFunction : lambda.Function;
+  public readonly searchLawsFunction : lambda.Function;
 
   constructor(scope: Construct, id: string, props: LambdaFunctionStackProps) {
     super(scope, id);    
 
+    const searchLawsFunction = new lambda.Function(scope, 'LawSearchFunction', {
+      runtime: lambda.Runtime.PYTHON_3_12, // Choose any supported Node.js runtime
+      code: lambda.Code.fromAsset(path.join(__dirname, 'search-laws')), // Points to the lambda directory
+      handler: 'lambda_function.lambda_handler', // Points to the 'hello' file in the lambda directory
+      environment: {
+        "KB_ID" : props.knowledgeBase.attrKnowledgeBaseId
+      },
+      timeout: cdk.Duration.seconds(30)
+    });
+
+    searchLawsFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'bedrock:Retrieve'
+      ],
+      resources: [props.knowledgeBase.attrKnowledgeBaseArn]
+    }));
+
+    this.searchLawsFunction = searchLawsFunction;
+    
     const retrieveActFunction = new lambda.Function(scope, 'ActRetrievalFunction', {
       runtime: lambda.Runtime.PYTHON_3_12, // Choose any supported Node.js runtime
       code: lambda.Code.fromAsset(path.join(__dirname, 'retrieve-act')), // Points to the lambda directory

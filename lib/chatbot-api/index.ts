@@ -85,6 +85,14 @@ export class ChatBotApi extends Construct {
       jwtAudience: [props.authentication.userPoolClient.userPoolClientId],
     })
 
+    const searchLawsAPIIntegration = new HttpLambdaIntegration('SearchAPIIntegration', lambdaFunctions.searchLawsFunction);
+    restBackend.restAPI.addRoutes({
+      path: "/search-laws",
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.POST, apigwv2.HttpMethod.DELETE],
+      integration: searchLawsAPIIntegration,
+      authorizer: httpAuthorizer,
+    })
+
     const actsAPIIntegration = new HttpLambdaIntegration('ActsAPIIntegration', lambdaFunctions.retrieveActFunction);
     restBackend.restAPI.addRoutes({
       path: "/get-act",
