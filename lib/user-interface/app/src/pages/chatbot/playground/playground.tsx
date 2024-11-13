@@ -15,6 +15,7 @@ export default function Playground() {
 
   const [loading, setLoading] = useState(false);
 
+  const [activeTab, setActiveTab] = useState("chat");
   // if (loading) {
   //   return (
       
@@ -115,15 +116,18 @@ export default function Playground() {
         tabs={[
           { label: "Chat",
             id: "chat",
-            content: <Chat sessionId={sessionId} setAmendments={setAmendments} setLoading={setLoading}/>
+            content:( <Chat sessionId={sessionId} setAmendments={setAmendments} setLoading={setLoading}/>)
           },
           {
             label: "Search",
             id: "search",
-            content : <Search/>
+            content : (<Search/>)
           }
-        ]}>
-        </Tabs>
+        ]}
+        activeTabId={activeTab}
+              onChange={({ detail: { activeTabId } }) => {
+                setActiveTab(activeTabId);}}
+                />        
         </div>
       }
     />
