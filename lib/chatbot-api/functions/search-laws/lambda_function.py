@@ -20,17 +20,27 @@ def retrieve_from_knowledge_base(query):
     results = response['retrievalResults']
 
     clean_results = []
-    for result in enumerate(results):
-        #results[i]['content']['text'] = result['content']['text'][:150] + "..."
+    for result in results:
+        #results[i]['content']['text'] = result['content']['text'][:150] + "..."]        
+        label = result['location']['s3Location']['uri']
+        parts = label.split("/")
+        year = parts[-2]
+        chapter_piece = parts[-1]
+        chapter = chapter_piece.split("-")[1].split(".")[0]
+        law_type = parts[-3]
+        if law_type == "acts":
+           law_type = "Acts"
+        else: 
+           law_type == "Resolves"
         clean_results.append({
            "content" : result['content']['text'][:150] + "...",
-           "chapter" : result['location']['s3Location']['uri']
+           "chapter" : f'Chapter {chapter} of the {law_type} of {year}'
         })
-
+    print(clean_results)
     return clean_results
 
 
-def handler(event, context):
+def lambda_handler(event, context):
   body = json.loads(event['body'])
   query = body.get('query','')
   if query == '':
@@ -47,5 +57,5 @@ def handler(event, context):
         'headers': {
                 'Access-Control-Allow-Origin': '*'
             },
-          "body" : retrieve_from_knowledge_base(query)
+          "body" : json.dumps(retrieve_from_knowledge_base(query))
      }
