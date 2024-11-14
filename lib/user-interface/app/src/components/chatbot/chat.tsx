@@ -131,7 +131,9 @@ export default function Chat(props: {
     if (!appContext) return;
     (async () => 
     {const apiClient = new ApiClient(appContext);
-    const text = await apiClient.acts.getAct(year, act);
+    const text = await apiClient.acts.getAct(props.year, props.chapter);
+    setYear(props.year);
+    setAct(props.chapter);
     setActText(text);
     getAmendments();})();    
   }, [props.year,props.chapter])
@@ -166,7 +168,7 @@ export default function Chat(props: {
         const message = JSON.stringify({
           "action": "getChatbotResponse",
           "data": {
-            userMessage: `Please return a structured list of amendments for chapter ${act} of the acts of ${year} using send_amendments_to_client.`,
+            userMessage: `Please return a structured list of amendments for chapter ${props.chapter} of the acts of ${props.year} using send_amendments_to_client.`,
             chatHistory: [],
             user_id: username,
             doNotSave: true,

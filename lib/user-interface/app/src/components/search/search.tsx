@@ -2,10 +2,13 @@
 import { useState } from "react"
 import SearchBar from "./search-bar"
 import { Box, Cards, CollectionPreferences, Header, Pagination, SpaceBetween, TextFilter } from "@cloudscape-design/components"
+import { Link } from "react-router-dom";
 
-export default function Search() {
-
-  const [searchResults, setSearchResults] = useState<any[]>([])
+export default function Search(props: {
+  sessionId: string,
+  searchResults: any[],
+  setSearchResults: React.Dispatch<React.SetStateAction<any[]>>,
+}) {  
 
   const [selectedItems, setSelectedItems] = useState([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(1);
@@ -13,7 +16,7 @@ export default function Search() {
   return (
     <div>
       <SpaceBetween size="m">
-      <SearchBar setSearchItems={setSearchResults}/>   
+      <SearchBar setSearchItems={props.setSearchResults}/>   
 
       <Cards
       onSelectionChange={({ detail }) => setSelectedItems(detail.selectedItems)}
@@ -25,7 +28,9 @@ export default function Search() {
       cardDefinition={{
         header: (item) => (
           
-            item.chapter
+          <Link to={`/chatbot/playground/${props.sessionId}/${item.chapter.split(" ").slice(-1)}/${item.chapter.split(" ")[1]}`}>
+                  {item.chapter}
+              </Link>            
           
         ),
         sections: [
@@ -37,7 +42,7 @@ export default function Search() {
         ],
       }}
       cardsPerRow={[{ cards: 1 }, { minWidth: 500, cards: 2 }]}
-      items={searchResults}
+      items={props.searchResults}
       loadingText="Loading results"
       // selectionType="multi"
       trackBy="location"
@@ -52,8 +57,8 @@ export default function Search() {
         <Header
           counter={
             selectedItems.length
-              ? `(${selectedItems.length}/${searchResults.length})`
-              : `(${searchResults.length})`
+              ? `(${selectedItems.length}/${props.searchResults.length})`
+              : `(${props.searchResults.length})`
           }
         >
           Results
@@ -62,7 +67,7 @@ export default function Search() {
       pagination={
         <Pagination
           currentPageIndex={currentPageIndex}
-          pagesCount={Math.ceil(searchResults.length / 6)}
+          pagesCount={Math.ceil(props.searchResults.length / 6)}
           onChange={({ detail }) => setCurrentPageIndex(detail.currentPageIndex)}
         />
       }

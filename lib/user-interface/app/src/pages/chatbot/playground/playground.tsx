@@ -1,8 +1,8 @@
 import BaseAppLayout from "../../../components/base-app-layout";
 import Chat from "../../../components/chatbot/chat";
 
-import { useParams, useNavigate } from "react-router-dom";
-import { Header, Cards, CollectionPreferences, Box,Link, Pagination, Spinner, Tabs } from "@cloudscape-design/components";
+import { useParams, useNavigate,Link } from "react-router-dom";
+import { Header, Cards, CollectionPreferences, Box,Pagination, Spinner, Tabs } from "@cloudscape-design/components";
 import { useState } from 'react'
 import Search from "../../../components/search/search";
 import useOnFollow from "../../../common/hooks/use-on-follow";
@@ -13,6 +13,7 @@ export default function Playground() {
   const onFollow = useOnFollow();
   
   const [amendments, setAmendments] = useState([])
+  const [searchResults, setSearchResults] = useState([])
 
   const [selectedItems, setSelectedItems] = useState([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(1);
@@ -43,18 +44,8 @@ export default function Playground() {
           }}
           cardDefinition={{
             header: (item) => (
-              <Link href={`/chatbot/playground/${sessionId}/${item.amending_act.split(" ").slice(-1)}/${item.amending_act.split(" ")[1]}`}>
-              {// <Link 
-              // href={`/chatbot/playground/${sessionId}/${item.amending_act.split(" ").slice(-1)}/${item.amending_act.split(" ")[1]}`}
-              // onFollow={event => {
-              //   if (!event.detail.external) {
-              //     event.preventDefault();
-              //     setActiveHref(event.detail.href);
-              //     // changeActPage(item.amending_act.split(" ").slice(-1),item.amending_act.split(" ")[1])
-              //     onFollow(event);
-              //   }
-              // }}>              
-                item.amending_act}              
+              <Link to={`/chatbot/playground/${sessionId}/${item.amending_act.split(" ").slice(-1)}/${item.amending_act.split(" ")[1]}`}>
+                  {item.amending_act}
               </Link>
             ),
             sections: [
@@ -138,7 +129,7 @@ export default function Playground() {
           {
             label: "Search",
             id: "search",
-            content : (<Search/>)
+            content : (<Search sessionId={sessionId} searchResults={searchResults} setSearchResults={setSearchResults}/>)
           }
         ]}
         activeTabId={activeTab}
