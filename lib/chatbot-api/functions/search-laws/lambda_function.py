@@ -33,7 +33,7 @@ def retrieve_from_knowledge_base(query):
         else: 
            law_type == "Resolves"
         clean_results.append({
-           "content" : result['content']['text'][:150] + "...",
+           "content" : result['content']['text'][:300] + "...",
            "chapter" : f'Chapter {chapter} of the {law_type} of {year}'
         })
     print(clean_results)

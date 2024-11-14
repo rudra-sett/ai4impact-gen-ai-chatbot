@@ -278,10 +278,12 @@ export default function Chat(props: {
               <Input
                 onChange={({ detail }) => setYear(detail.value)}
                 value={year}
+                placeholder="Year"
               />
               <Input
                 onChange={({ detail }) => setAct(detail.value)}
                 value={act}
+                placeholder="Chapter"
               />
               <Button variant="primary" onClick={getAct} >Retrieve</Button>
               {/* <Button variant="primary" onClick={getAmendments} >Amendments</Button> */}
