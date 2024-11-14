@@ -34,6 +34,7 @@ function App() {
             />            
             <Route path="/chatbot" element={<Outlet />}>
               <Route path="playground/:sessionId" element={<Playground />} />
+              <Route path="playground/:sessionId/:year/:chapter" element={<Playground />} />
               <Route path="sessions" element={<SessionPage />} />              
             </Route>
             <Route path="/admin" element={<Outlet />}>                 

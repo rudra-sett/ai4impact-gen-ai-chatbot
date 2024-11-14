@@ -1,5 +1,15 @@
 @use "@cloudscape-design/design-tokens/index" as awsui;
 
+.browse_container {
+  margin-bottom: -40px;
+  // min-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 20px;
+  position: sticky;
+  // justify-content: space-between;
+}
+
 .chat_container {
   margin-bottom: -40px;
   min-height: calc(100vh - 96px);
@@ -70,6 +80,23 @@
   margin-right: -8px;
   container-type: inline-size;
   container-name: input_container;
+}
+
+.browse_control_container {
+  position: fixed;
+  bottom: 40px;
+  width: 50%;
+  padding-bottom: awsui.$space-scaled-l;
+  padding-top: awsui.$space-scaled-xxl;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    awsui.$color-background-container-content 20%
+  );
+  margin-left: 8px;
+  margin-right: 8px;
+  container-type: inline-size;
+  container-name: browse_input_container;
 }
 
 .input_textarea_container {

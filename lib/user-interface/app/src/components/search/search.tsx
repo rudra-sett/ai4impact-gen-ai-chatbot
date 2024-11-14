@@ -1,7 +1,7 @@
 
 import { useState } from "react"
 import SearchBar from "./search-bar"
-import { Box, Cards, CollectionPreferences, Header, Pagination, TextFilter } from "@cloudscape-design/components"
+import { Box, Cards, CollectionPreferences, Header, Pagination, SpaceBetween, TextFilter } from "@cloudscape-design/components"
 
 export default function Search() {
 
@@ -12,6 +12,7 @@ export default function Search() {
 
   return (
     <div>
+      <SpaceBetween size="m">
       <SearchBar setSearchItems={setSearchResults}/>   
 
       <Cards
@@ -38,7 +39,7 @@ export default function Search() {
       cardsPerRow={[{ cards: 1 }, { minWidth: 500, cards: 2 }]}
       items={searchResults}
       loadingText="Loading results"
-      selectionType="multi"
+      // selectionType="multi"
       trackBy="location"
       visibleSections={["content"]}
       empty={
@@ -46,7 +47,7 @@ export default function Search() {
           <b>No results found</b>
         </Box>
       }
-      filter={<TextFilter filteringText={""} filteringPlaceholder="Search results" />}
+      // filter={<TextFilter filteringText={""} filteringPlaceholder="Search results" />}
       header={
         <Header
           counter={
@@ -93,6 +94,7 @@ export default function Search() {
         />
       }
     />   
+    </SpaceBetween>
     </div>
 
     

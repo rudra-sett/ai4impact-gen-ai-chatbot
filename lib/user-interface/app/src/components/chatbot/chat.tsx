@@ -19,7 +19,10 @@ import { Utils } from "../../common/utils";
 export default function Chat(props: {
   sessionId?: string,
   setAmendments: React.Dispatch<React.SetStateAction<any[]>>,
-  setLoading: React.Dispatch<React.SetStateAction<boolean>>
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>,
+  chapter: string,
+  year: string,
+  changeAct : (year: string, chapter: string) => void
 }) {
   const appContext = useContext(AppContext);
   const [running, setRunning] = useState<boolean>(true);
@@ -34,8 +37,8 @@ export default function Chat(props: {
     []
   );
 
-  const [year, setYear] = useState("2024");
-  const [act, setAct] = useState("1");
+  const [year, setYear] = useState(props.year);
+  const [act, setAct] = useState(props.chapter);
   const [actText, setActText] = useState("Enter a chapter and year to retrieve an Act");
 
 
@@ -124,12 +127,17 @@ export default function Chat(props: {
     await apiClient.userFeedback.sendUserFeedback(feedbackData);
   }
 
-  const getAct = async () => {
+  useEffect(() => {
     if (!appContext) return;
-    const apiClient = new ApiClient(appContext);
+    (async () => 
+    {const apiClient = new ApiClient(appContext);
     const text = await apiClient.acts.getAct(year, act);
     setActText(text);
-    getAmendments();
+    getAmendments();})();    
+  }, [props.year,props.chapter])
+
+  const getAct = async () => {
+    props.changeAct(year,act)
   }
 
   const getAmendments = async () => {
@@ -149,6 +157,8 @@ export default function Chat(props: {
 
       const wsUrl = WS_URL + '?Authorization=' + TOKEN;
       const ws = new WebSocket(wsUrl);
+
+      let gotData = false;
 
       // Event listener for when the connection is open
       ws.addEventListener('open', function open() {
@@ -177,8 +187,10 @@ export default function Chat(props: {
           return;
         }
 
-        if (data.data.includes("amending_act")) {
+        if (data.data.includes("[") && !gotData) {
           // this is the object with the amendments! 
+          // console.log(data.data)
+          gotData = true;
           receivedData = JSON.parse(data.data)
           props.setAmendments(receivedData as any[])
         }
