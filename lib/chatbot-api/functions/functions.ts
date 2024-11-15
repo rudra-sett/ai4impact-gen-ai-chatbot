@@ -16,6 +16,7 @@ interface LambdaFunctionStackProps {
   readonly wsApiEndpoint : string;  
   readonly sessionTable : Table;  
   readonly feedbackTable : Table;
+  readonly amendmentTable : Table;
   readonly feedbackBucket : s3.Bucket;
   readonly knowledgeBucket : s3.Bucket;
   readonly knowledgeBase : bedrock.CfnKnowledgeBase;
@@ -131,7 +132,8 @@ export class LambdaFunctionStack extends cdk.Stack {
             
             If the user directly asks what acts amend a specific act, resolve, or general law, use the tool for that as well.`,
             'KB_ID' : props.knowledgeBase.attrKnowledgeBaseId,
-            "OPENSEARCH_ENDPOINT" : props.openSearch.attrCollectionEndpoint
+            "OPENSEARCH_ENDPOINT" : props.openSearch.attrCollectionEndpoint,
+            "AMENDMENT_TABLE" : props.amendmentTable.tableName
           },
           timeout: cdk.Duration.seconds(300)
         });
@@ -214,6 +216,19 @@ export class LambdaFunctionStack extends cdk.Stack {
         ])
         })
         
+        websocketAPIFunction.addToRolePolicy(new iam.PolicyStatement({
+          effect: iam.Effect.ALLOW,
+          actions: [
+            'dynamodb:GetItem',
+            'dynamodb:PutItem',
+            'dynamodb:UpdateItem',
+            'dynamodb:DeleteItem',
+            'dynamodb:Query',
+            'dynamodb:Scan'
+          ],
+          resources: [props.amendmentTable.tableArn, props.amendmentTable.tableArn + "/index/*"]
+        }));
+
         this.chatFunction = websocketAPIFunction;
 
     const feedbackAPIHandlerFunction = new lambda.Function(scope, 'FeedbackHandlerFunction', {

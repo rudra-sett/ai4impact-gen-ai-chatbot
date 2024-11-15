@@ -170,6 +170,8 @@ export default function Chat(props: {
           "data": {
             userMessage: `Please return a structured list of amendments for chapter ${props.chapter} of the acts of ${props.year} using send_amendments_to_client.`,
             chatHistory: [],
+            chapter: props.chapter,
+            year: props.year,
             user_id: username,
             doNotSave: true,
             session_id: session.id,
