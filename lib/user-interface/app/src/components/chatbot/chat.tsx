@@ -5,7 +5,7 @@ import {
   FeedbackData
 } from "./types";
 import { Auth } from "aws-amplify";
-import { SpaceBetween, StatusIndicator, Alert, Flashbar, ColumnLayout, Input, Button, TextContent } from "@cloudscape-design/components";
+import { SpaceBetween, StatusIndicator, Alert, Flashbar, ColumnLayout, Input, Button, TextContent, Spinner } from "@cloudscape-design/components";
 import { v4 as uuidv4 } from "uuid";
 import { AppContext } from "../../common/app-context";
 import { ApiClient } from "../../common/api-client/api-client";
@@ -40,6 +40,7 @@ export default function Chat(props: {
   const [year, setYear] = useState(props.year);
   const [act, setAct] = useState(props.chapter);
   const [actText, setActText] = useState("Enter a chapter and year to retrieve an Act");
+  const [actLoading, setActLoading] = useState(false);
 
 
 
@@ -129,13 +130,15 @@ export default function Chat(props: {
 
   useEffect(() => {
     if (!appContext) return;
+    setActLoading(true);
     (async () => 
     {const apiClient = new ApiClient(appContext);
     const text = await apiClient.acts.getAct(props.year, props.chapter);
     setYear(props.year);
     setAct(props.chapter);
     setActText(text);
-    getAmendments();})();    
+    getAmendments();
+    setActLoading(false);})();    
   }, [props.year,props.chapter])
 
   const getAct = async () => {
@@ -267,6 +270,8 @@ export default function Chat(props: {
         </div>
         <div>
           <div className={styles.chat_container}>
+            { actLoading? <StatusIndicator type="loading">Loading law</StatusIndicator> :
+
             <TextContent>
               {/* {actText} */}
               {actText.split('\n').map((line, index) => (
@@ -276,6 +281,7 @@ export default function Chat(props: {
                 </Fragment>
               ))}
             </TextContent>
+            }
           </div>
           <div className={styles.input_container}>
             <SpaceBetween direction="horizontal" size="xs">

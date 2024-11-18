@@ -18,13 +18,17 @@ export default function SearchBar(props: SearchBarProps){
 
   const [state, setState] = useState<string>('');
 
+  const [loading, setLoading] = useState<boolean>(false);
+
   const appContext = useContext(AppContext);
   
   async function search() {
+    setLoading(true);
     const query = state;
     const apiClient = new ApiClient(appContext);
     const results = await apiClient.acts.searchLaws(query);
     props.setSearchItems(results);
+    setLoading(false);
   }
   return (
     <SpaceBetween direction="vertical" size="l">
@@ -53,23 +57,22 @@ export default function SearchBar(props: SearchBarProps){
           <div style={{ marginLeft: "8px" }}>            
             <Button
               disabled={                
-                // props.running ||
+                loading ||
                 state.trim().length === 0             
               }
               onClick={search}
               iconAlign="right"
               // iconName={!props.running ? "angle-right-double" : undefined}
               variant="primary"
-            >
-              Search
-              {/* {props.running ? (
+            >              
+              {loading ? (
                 <>
                   Loading&nbsp;&nbsp;
                   <Spinner />
                 </>
               ) : (
                 "Search"
-              )} */}
+              )}
             </Button>
           </div>
         </div>

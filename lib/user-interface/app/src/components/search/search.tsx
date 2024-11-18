@@ -8,6 +8,7 @@ export default function Search(props: {
   sessionId: string,
   searchResults: any[],
   setSearchResults: React.Dispatch<React.SetStateAction<any[]>>,
+  changeTab: React.Dispatch<React.SetStateAction<string>>
 }) {  
 
   const [selectedItems, setSelectedItems] = useState([]);
@@ -28,8 +29,9 @@ export default function Search(props: {
       cardDefinition={{
         header: (item) => (
           
-          <Link to={`/chatbot/playground/${props.sessionId}/${item.chapter.split(" ").slice(-1)}/${item.chapter.split(" ")[1]}`}>
+          <Link onClick={() => { props.changeTab("chat")}} to={`/chatbot/playground/${props.sessionId}/${item.chapter.split(" ").slice(-1)}/${item.chapter.split(" ")[1]}`}>
                   {item.chapter}
+                  
               </Link>            
           
         ),

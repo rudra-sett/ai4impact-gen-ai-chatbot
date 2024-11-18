@@ -129,7 +129,7 @@ export default function Playground() {
           {
             label: "Search",
             id: "search",
-            content : (<Search sessionId={sessionId} searchResults={searchResults} setSearchResults={setSearchResults}/>)
+            content : (<Search sessionId={sessionId} searchResults={searchResults} setSearchResults={setSearchResults} changeTab={setActiveTab}/>)
           }
         ]}
         activeTabId={activeTab}
