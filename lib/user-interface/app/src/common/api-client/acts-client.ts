@@ -25,7 +25,8 @@ export class ActsClient {
       }),
     });
     if (!response.ok) {
-      throw new Error('Failed to get files');
+      console.error('Failed to get files');
+      return "Enter a year and chapter to retrieve an Act";
     }
     const result = await response.json();
     return result;

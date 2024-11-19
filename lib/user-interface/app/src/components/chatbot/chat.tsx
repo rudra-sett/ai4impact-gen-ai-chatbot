@@ -5,7 +5,7 @@ import {
   FeedbackData
 } from "./types";
 import { Auth } from "aws-amplify";
-import { SpaceBetween, StatusIndicator, Alert, Flashbar, ColumnLayout, Input, Button, TextContent, Spinner } from "@cloudscape-design/components";
+import { SpaceBetween, StatusIndicator, Alert, Flashbar, ColumnLayout, Input, Button, TextContent, Spinner, Box } from "@cloudscape-design/components";
 import { v4 as uuidv4 } from "uuid";
 import { AppContext } from "../../common/app-context";
 import { ApiClient } from "../../common/api-client/api-client";
@@ -270,8 +270,8 @@ export default function Chat(props: {
         </div>
         <div>
           <div className={styles.chat_container}>
-            { actLoading? <StatusIndicator type="loading">Loading law</StatusIndicator> :
-
+            { actLoading? <Box textAlign="center"><StatusIndicator type="loading">Loading law</StatusIndicator></Box>:
+            <Box textAlign="center">
             <TextContent>
               {/* {actText} */}
               {actText.split('\n').map((line, index) => (
@@ -281,6 +281,7 @@ export default function Chat(props: {
                 </Fragment>
               ))}
             </TextContent>
+            </Box>
             }
           </div>
           <div className={styles.input_container}>
