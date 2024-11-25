@@ -196,9 +196,9 @@ export default function Chat(props: {
 
         if (data.data.includes("[") && !gotData) {
           // this is the object with the amendments! 
-          // console.log(data.data)
+          console.log(data.data)
           gotData = true;
-          receivedData = JSON.parse(data.data)
+          receivedData = JSON.parse(data.data);
 
           (receivedData as any[]).sort((a, b) => {
             const yearA = parseInt(a.amending_act.match(/of (\d{4})/)[1], 10);
