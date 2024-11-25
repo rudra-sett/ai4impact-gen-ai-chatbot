@@ -199,6 +199,13 @@ export default function Chat(props: {
           // console.log(data.data)
           gotData = true;
           receivedData = JSON.parse(data.data)
+
+          (receivedData as any[]).sort((a, b) => {
+            const yearA = parseInt(a.amending_act.match(/of (\d{4})/)[1], 10);
+            const yearB = parseInt(b.amending_act.match(/of (\d{4})/)[1], 10);
+            return yearA - yearB;
+          });
+
           props.setAmendments(receivedData as any[])
         }
 
