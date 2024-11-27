@@ -52,7 +52,7 @@ export class PDFPipelineStack extends Construct {
 
     textractFunction.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ['sqs:SendMessage'],
+        actions: ['sqs:GetQueueAttributes','sqs:GetQueueUrl','sqs:SendMessage'],
         resources: [props.pdfQueue.queueArn],
       })
     );

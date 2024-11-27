@@ -9,7 +9,7 @@ textract = boto3.client('textract')
 s3 = boto3.client('s3')
 
 def start_job(bucket_name, object_name):
-    response = s3.start_document_analysis(
+    response = textract.start_document_analysis(
         DocumentLocation={
             'S3Object': {
                 'Bucket': bucket_name,
