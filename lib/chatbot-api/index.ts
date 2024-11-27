@@ -13,6 +13,7 @@ import { WebSocketLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integra
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { WebSocketLambdaAuthorizer, HttpUserPoolAuthorizer, HttpJwtAuthorizer  } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { aws_apigatewayv2 as apigwv2 } from "aws-cdk-lib";
+import { Bucket } from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 import { OpenSearchStack } from "./opensearch/opensearch";
 import { KnowledgeBaseStack } from "./knowledge-base/knowledge-base"
@@ -27,7 +28,7 @@ export class ChatBotApi extends Construct {
   public readonly httpAPI: RestBackendAPI;
   public readonly wsAPI: WebsocketBackendAPI;
   // public readonly byUserIdIndex: string;
-  // public readonly filesBucket: s3.Bucket;
+  public readonly filesBucket: Bucket;
   // public readonly userFeedbackBucket: s3.Bucket;
   // public readonly wsAPI: apigwv2.WebSocketApi;
 
@@ -36,6 +37,8 @@ export class ChatBotApi extends Construct {
 
     const tables = new TableStack(this, "TableStack");
     const buckets = new S3BucketStack(this, "BucketStack");
+
+    this.filesBucket = buckets.knowledgeBucket;
     
     const openSearch = new OpenSearchStack(this,"OpenSearchStack",{})
     const knowledgeBase = new KnowledgeBaseStack(this,"KnowledgeBaseStack",{ openSearch : openSearch,
