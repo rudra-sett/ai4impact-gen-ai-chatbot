@@ -3,12 +3,19 @@ from bs4 import BeautifulSoup
 import boto3
 import os
 from datetime import datetime
+import json
+import time
 
 
 # URL of the site to fetch
 url = 'https://malegislature.gov/Laws/SessionLaws/Acts/'
 bucket_name = os.environ['BUCKET']
+queue_name = os.environ['QUEUE']
+start_time = time.time()
+
 s3 = boto3.client('s3')
+sqs = boto3.resource('sqs')
+
 
 def pull_page(year, act):
     with urllib.request.urlopen(url + str(year) + "/" + "Chapter" +str(act)) as response:
@@ -28,12 +35,28 @@ def pull_page(year, act):
         return title + "\n\n" + text
     
 
-def process_year(year):
+def process_year(year,start=1):
     
     error = False
-    act = 1
+    act = start
     
     while not error:
+
+        # if this has been running for over 14 minutes already,
+        # stop crawling and add this to the queue for a new Lambda instance to continue
+
+        if time.time() - start_time > 840:
+            queue = sqs.get_queue_by_name(
+                QueueName=queue_name,
+            )
+            queue.send_message(                
+                MessageBody=json.dumps({'year': year, 'start' : act}),
+                MessageAttributes={},
+                MessageGroupId=str(year) + str(act),
+                MessageDeduplicationId=str(year) + str(act)
+            )
+            print("stopped crawling, passing job to next worker")
+            error=True
         try:
             print("Act: "+ str(act))
             page = pull_page(year,act)
@@ -52,9 +75,14 @@ def lambda_handler(event, context):
     
     if 'Records' in event:
         for message in event['Records']:
-            year = message['body']
-            print("Year: "+ str(year))
-            process_year(year)
+            body = json.loads(message['body'])
+            print("Year: "+ body['year'])
+            if 'start' in body:
+                print("Starting from: "+ body['start'])
+                start = body['start']
+                process_year(year,start)
+            else:
+                process_year(year)
             
     elif 'source' in event:
         year = str(datetime.now().year)

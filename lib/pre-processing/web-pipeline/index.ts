@@ -44,7 +44,7 @@ export class WebPipelineStack extends Construct {
 
     crawlYearFunction.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ['sqs:ReceiveMessage', 'sqs:DeleteMessage', 'sqs:GetQueueAttributes'],
+        actions: ['sqs:ReceiveMessage', 'sqs:DeleteMessage', 'sqs:GetQueueAttributes', 'sqs:GetQueueUrl', 'sqs:SendMessage'],
         resources: [props.yearQueue.queueArn],
       })
     );
@@ -57,7 +57,10 @@ export class WebPipelineStack extends Construct {
     );
 
     crawlYearFunction.addEventSource(new SqsEventSource(props.yearQueue, {
-      batchSize: 1
+      // batch size of 1 so that one lambda instance doesn't crawl more than a year (it'd hit the timeout otherwise)
+      batchSize: 1,
+      // adding max concurrency of 2 so we're not crawling the website too fast
+      maxConcurrency: 2
     }));
 
     const addYearsFunction = new lambda.Function(this, 'AddYearsFunction', {

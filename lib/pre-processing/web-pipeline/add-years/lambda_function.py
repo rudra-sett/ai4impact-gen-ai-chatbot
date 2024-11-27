@@ -3,7 +3,7 @@ import json
 import os
 from datetime import datetime
 
-sqs = boto3.client('sqs')
+sqs = boto3.resource('sqs')
 queue_name = os.environ['QUEUE']
 
 def lambda_handler(event, context):
