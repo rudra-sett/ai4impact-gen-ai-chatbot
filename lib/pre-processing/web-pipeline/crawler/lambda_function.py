@@ -39,7 +39,8 @@ def process_year(year,start=1):
     
     error = False
     act = start
-    
+    error_count = 0
+
     while not error:
 
         # if this has been running for over 14 minutes already,
@@ -63,11 +64,20 @@ def process_year(year,start=1):
             key = f"acts/{year}/chapter-{act}.txt"
             s3.put_object(Bucket=bucket_name, Key=key, Body=page.encode('utf-8'))
             act += 1
+            error_count = 0
         except urllib.error.HTTPError as e:
-            print("ran out of pages to crawl, next year!")
-            print(f"Error: {e.code} - {e.reason}")
-            error = True
-            continue
+            if error_count > 2:
+                print("ran out of pages to crawl, next year!")
+                print(f"Error: {e.code} - {e.reason}")
+                error = True
+                continue
+            else:
+                print(f"Error: {e.code} - {e.reason}")
+                # sometimes, an individual page is missing, but the rest are available after
+                # so, just move on to the next one, and only if more than 2 in a row are missing
+                # can you say for sure that the you've reached the end
+                error_count += 1
+                act += 1
 
 def lambda_handler(event, context):
     # go through each year, though technically this should only receive one at a time
@@ -76,10 +86,11 @@ def lambda_handler(event, context):
     if 'Records' in event:
         for message in event['Records']:
             body = json.loads(message['body'])
-            print("Year: "+ body['year'])
+            print("Year: "+ str(body['year']))
             if 'start' in body:
-                print("Starting from: "+ body['start'])
+                print("Starting from: "+ str(body['start']))
                 start = body['start']
+                year = body['year']
                 process_year(year,start)
             else:
                 process_year(year)

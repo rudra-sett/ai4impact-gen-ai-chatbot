@@ -35,7 +35,8 @@ export class WebPipelineStack extends Construct {
       }),
       handler: 'lambda_function.lambda_handler',
       environment: {
-        "BUCKET": props.outputBucket.bucketName
+        "BUCKET": props.outputBucket.bucketName,
+        "QUEUE": props.yearQueue.queueName
       },
       memorySize: 8192,
       timeout: cdk.Duration.seconds(900)
