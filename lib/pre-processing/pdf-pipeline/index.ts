@@ -102,6 +102,11 @@ export class PDFPipelineStack extends Construct {
     splitterFunction.addEventSource(new SqsEventSource(props.pdfQueue,{
       batchSize: 1
     }));
+    
+    // TODO: incorporate cleaning function if we can't find a better way to split up the documents
+    // TODO: automatically download the PDFs via a custom resource trigger, but this can only run
+    // after the textract function and trigger are in place
+  
   }
 
 }
