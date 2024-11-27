@@ -99,7 +99,9 @@ export class PDFPipelineStack extends Construct {
       })
     );
 
-    splitterFunction.addEventSource(new SqsEventSource(props.pdfQueue));
+    splitterFunction.addEventSource(new SqsEventSource(props.pdfQueue,{
+      batchSize: 1
+    }));
   }
 
 }

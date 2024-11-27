@@ -36,9 +36,7 @@ export class DataStack extends Construct {
     const yearQueue = new sqs.Queue(this, 'YearQueue',{
       fifo: true,
       visibilityTimeout: cdk.Duration.minutes(30)
-    });
-
-    // TODO: Lambda Custom Resource that adds the necessary years to the queue
+    });    
     
     const webPipeline = new WebPipelineStack(this, 'WebPipelineStack', {      
       yearQueue: yearQueue,
