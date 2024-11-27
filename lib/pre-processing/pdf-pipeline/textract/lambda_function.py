@@ -48,6 +48,6 @@ def lambda_handler(event, context):
 
     index = random.randint(1, 1000000)
 
-    add_to_queue(queue,key + " job id - " + job,index)
+    add_to_queue(queue,key + " job id - " + job,str(index))
 
 
