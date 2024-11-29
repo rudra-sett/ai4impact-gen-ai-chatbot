@@ -2,17 +2,16 @@ import urllib.request
 import boto3
 import os
 
-# client = boto3.client('textract')
 client = boto3.client('s3')
 
-bucket_name = os.environ['BUCKET']
-            
+bucket_name = os.environ['BUCKET']            
 
 def lambda_handler(event, context):
     for i in range(1960,1997):
       url = f'https://www.mass.gov/doc/acts-and-resolves-{i}/download'
       response = ""
       volume = 0
+      print(url)
       try:
           response = urllib.request.urlopen(url)
           data = response.read()
