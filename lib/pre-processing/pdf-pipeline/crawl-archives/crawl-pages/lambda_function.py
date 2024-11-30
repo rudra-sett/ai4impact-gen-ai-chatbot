@@ -50,8 +50,8 @@ def download_page(link):
     dl_name = act_dls[-1].find('a').get_text().split(".")[0]
     item_id = dl_url.split('/')[-2]
     
-    retry = 6
-    while retry > 5:
+    # retry = 6
+    while True:
         try:
             file = urllib.request.urlopen(host + f'/server/api/core/bitstreams/{item_id}/content').read()
             year = dl_name[:4]
@@ -62,8 +62,7 @@ def download_page(link):
                 add_to_queue(key + " job id - " + job_id,job_id)
         except urllib.error.HTTPError as e:
             print(e)
-            time.sleep(15)
-            retry -= 1
+            time.sleep(15)            
             continue 
         
 def lambda_handler(event, context):

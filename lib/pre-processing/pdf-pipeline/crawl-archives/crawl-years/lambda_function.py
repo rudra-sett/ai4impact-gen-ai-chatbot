@@ -42,7 +42,7 @@ def get_chapter_links(year,link):
                         title = link.get_text()
                         print(title)
                         url = host + link['href']
-                        final_links.append({'title' : title, 'url' : host + url,'year' : year})                                    
+                        final_links.append({'title' : title, 'url' : url,'year' : year})                                    
                 page += 1
         except urllib.error.HTTPError as e:
             print(e)
