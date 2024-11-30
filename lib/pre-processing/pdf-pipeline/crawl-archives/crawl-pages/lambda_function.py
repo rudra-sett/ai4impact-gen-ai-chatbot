@@ -1,4 +1,5 @@
 import boto3
+import json
 import urllib.request
 import os
 import time
@@ -70,5 +71,5 @@ def lambda_handler(event, context):
     print(event['Records'])
         
     for message in event['Records']:
-        item = message['body']
+        item = json.loads(message['body'])
         download_page(item['url'])
