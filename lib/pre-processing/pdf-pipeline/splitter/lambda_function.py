@@ -17,14 +17,14 @@ def extract_year(filename):
 
 # Function to extract chapter number, accounting for both "Chap." and "Chapter"
 def extract_chapter(text):
-    match = re.search(r'(Chap|Chapter) (\d+)', text)
+    match = re.search(r'(Chap|Chapter)\.?\s*(\d+)\.?', text)
     if match:
         return match.group(2)
     return None
 
 # Function to determine if a block is an act or resolve
 def is_resolve(text):
-    resolve_pattern = r"(Chap(?:ter)?\s*\d+\s*RESOLVE)"
+    resolve_pattern = r"(Chap(?:ter)?\.?\s*\d+\.?\s*RESOLVE)"
     # Use re.search with the case-insensitive flag to check if "RESOLVE" appears in the relevant context
     return bool(re.search(resolve_pattern, text, flags=re.IGNORECASE))
 
@@ -77,7 +77,8 @@ def remove_header(header_block, blocks, block_id_map):
 def split_text_by_act(text_chunk):
     # Regular expression to identify the start of each act (e.g., "Chap. X." or "Chapter X.")
     # act_split_pattern = r"(Chap\.\s*\d+\.|Chapter\s*\d+\.|CHAP\.\s*\d+\.|CHAPTER\s*\d+\.)"
-    act_split_pattern = r"(Chap(?:ter)?\s*\d+\s*(?:AN ACT|RESOLVE|ANACT))"
+    # act_split_pattern = r"(Chap(?:ter)?\s*\d+\s*(?:AN ACT|RESOLVE|ANACT))"
+    act_split_pattern = r"(Chap(?:ter)?\.?\s*\d+\.?\s*(?:AN ACT|RESOLVE))"
     # Split the text based on the act pattern
     acts = re.split(act_split_pattern, text_chunk, flags=re.IGNORECASE)
     # Remove empty strings and combine the act numbers with their text
@@ -144,9 +145,9 @@ def pipeline(job_id,filename):
     text_chunk = " ".join(lines)
     print("Processed text")
     # Remove punctuation from the text
-    clean_text = text_chunk.translate(str.maketrans('', '', string.punctuation))
+    # clean_text = text_chunk.translate(str.maketrans('', '', string.punctuation))
     # Turn the lines into acts
-    acts = split_text_by_act(clean_text)
+    acts = split_text_by_act(text_chunk)
     print("Got acts")
     # Process and save acts and resolves to S3
     process_acts_resolves(acts, filename, bucket_name)
