@@ -3,6 +3,7 @@ import urllib.request
 import os
 import json
 import time
+import random
 from bs4 import BeautifulSoup
 
 sqs = boto3.resource('sqs')
@@ -68,6 +69,6 @@ def lambda_handler(event, context):
                 MessageBody=json.dumps(link),
                 MessageAttributes={},
                 MessageGroupId=str(link['year']),
-                MessageDeduplicationId=str(link['year'])
+                MessageDeduplicationId=str(random.randint(1, 100000000))
             )
             print(f"Sent message for year {link['year']}, MessageId: {response['MessageId']}")

@@ -42,24 +42,37 @@ def add_to_queue(message_body, index):
         return response
 
 def download_page(link):
-    act_page_response = urllib.request.urlopen(link)
-    act_html = act_page_response.read().decode('utf-8')
-    act_soup = BeautifulSoup(act_html, 'html.parser')
-    act_dls = act_soup.find_all('ds-file-download-link')
-    dl_url = act_dls[-1].find('a')['href']
-    dl_name = act_dls[-1].find('a').get_text().split(".")[0]
-    item_id = dl_url.split('/')[-2]
-    
-    # retry = 6
-    while True:
+    stop = False
+    while not stop:
         try:
-            file = urllib.request.urlopen(host + f'/server/api/core/bitstreams/{item_id}/content').read()
-            year = dl_name[:4]
-            key = f"archives/acts/{year}/acts-and-resolves-{year}-chapter-{int(dl_name[-4:])}.pdf"
-            s3.put_object(Bucket=bucket_name, Key=key, Body=file)
-            if (int(year) > 1959):
-                job_id = start_job(bucket_name,key)
-                add_to_queue(key + " job id - " + job_id,job_id)
+            time.sleep(15)
+            act_page_response = urllib.request.urlopen(link)
+            act_html = act_page_response.read().decode('utf-8')
+            act_soup = BeautifulSoup(act_html, 'html.parser')
+            act_dls = act_soup.find_all('ds-file-download-link')
+            print(act_dls) 
+            for dl_item in act_dls:
+                dl_url = dl_item.find('a')['href']
+                dl_info = dl_item.find('a').get_text().split(".")
+                dl_name = dl_info[0]
+                item_id = dl_url.split('/')[-2]
+                file = urllib.request.urlopen(host + f'/server/api/core/bitstreams/{item_id}/content').read()
+                year = dl_name[:4]
+                law_type = 'acts'
+                if "resolve" in dl_name:
+                    law_type = 'acts'
+                if 'pdf' in dl_info[1]:
+                    key = f"archives/{law_type}/{year}/acts-and-resolves-{year}-chapter-{int(dl_name[-4:])}.pdf"
+                    print(key)
+                    s3.put_object(Bucket=bucket_name, Key=key, Body=file)
+                    if (int(year) > 1959):
+                        job_id = start_job(bucket_name,key)
+                        add_to_queue(key + " job id - " + job_id,job_id)
+                elif 'txt' in dl_info[1]:
+                    key = f"{law_type}/{year}/chapter-{int(dl_name[-4:])}.txt"
+                    print(key)
+                    s3.put_object(Bucket=bucket_name, Key=key, Body=file)                
+                stop = True
         except urllib.error.HTTPError as e:
             print(e)
             time.sleep(15)            

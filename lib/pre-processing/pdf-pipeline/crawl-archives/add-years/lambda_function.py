@@ -28,7 +28,7 @@ def get_year_links(year_links_url = 'https://archives.lib.state.ma.us/communitie
 def lambda_handler(event, context):
     links = get_year_links()
     for link in links:
-            if int(link['year']) < 1997:
+            if int(link['year']) < 1960:
                 queue = sqs.get_queue_by_name(
                     QueueName=queue_name,
                 )

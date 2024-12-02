@@ -58,6 +58,44 @@ def build_block_id_map(blocks):
 def get_block_from_id(id, block_id_map):
     return block_id_map.get(id, None)
 
+# Get the textract ID for all individual pages
+def get_page_ids(blocks):
+    page_ids = []
+    for block in blocks:
+        if block['BlockType'] == 'PAGE':
+            page_ids.append(block['Id'])
+    return page_ids
+
+# Gets text for a particular block
+def get_block_text(block_id, block_id_map):
+    block = get_block_from_id(block_id, block_id_map)
+    children = block['Relationships'][0]['Ids']
+    text = block.get('Text', '')
+    for child in children:
+        child_block = get_block_from_id(child, block_id_map)
+        if child_block is not None and child_block['BlockType'] == 'LINE':
+            text += (" " + child_block.get('Text', ''))
+    return text
+
+# Removes punctuation, for use by the page number parser
+def remove_punctuation(text):
+    return text.translate(str.maketrans('', '', string.punctuation))
+
+# Get the page number for each page by taking the last number that shows up on that page's text
+def get_page_numbers_by_text(blocks, block_id_map):
+    page_ids = get_page_ids(blocks)
+    page_numbers = {}
+    for i, page_id in enumerate(page_ids):
+        full_text = get_block_text(page_id, block_id_map)
+        matches = re.findall(r'\d+(?:\.\d+)?$', remove_punctuation(full_text).strip())
+        if matches:
+            page_number = matches[-1]
+            page_number_cleaned = page_number
+            page_numbers[i] = {"page_id": page_id, "page_number": page_number_cleaned}
+        else:
+            pass
+    return page_numbers
+
 # Removes a given header
 def remove_header(header_block, blocks, block_id_map):
     children = header_block.get('Relationships', [])[0].get('Ids', [])
@@ -78,7 +116,8 @@ def split_text_by_act(text_chunk):
     # Regular expression to identify the start of each act (e.g., "Chap. X." or "Chapter X.")
     # act_split_pattern = r"(Chap\.\s*\d+\.|Chapter\s*\d+\.|CHAP\.\s*\d+\.|CHAPTER\s*\d+\.)"
     # act_split_pattern = r"(Chap(?:ter)?\s*\d+\s*(?:AN ACT|RESOLVE|ANACT))"
-    act_split_pattern = r"(Chap(?:ter)?\.?\s*\d+\.?\s*(?:AN ACT|RESOLVE))"
+    #act_split_pattern = r"(Chap(?:ter)?\.?\s*\d+\.?\s*(?:AN ACT|RESOLVE|ANACT|ACT REL|ACT ESTA))"
+    act_split_pattern = r"((?:AN ACT|RESOLVE|ANACT).{0,100}?Chap(?:ter)?\.?\s*\d+\.?|Chap(?:ter)?\.?\s*\d+\.?\s*(?:AN ACT|RESOLVE|ANACT|ACT REL|ACT ESTA))"
     # Split the text based on the act pattern
     acts = re.split(act_split_pattern, text_chunk, flags=re.IGNORECASE)
     # Remove empty strings and combine the act numbers with their text
