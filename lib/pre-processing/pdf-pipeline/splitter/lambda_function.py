@@ -117,7 +117,12 @@ def split_text_by_act(text_chunk):
     # act_split_pattern = r"(Chap\.\s*\d+\.|Chapter\s*\d+\.|CHAP\.\s*\d+\.|CHAPTER\s*\d+\.)"
     # act_split_pattern = r"(Chap(?:ter)?\s*\d+\s*(?:AN ACT|RESOLVE|ANACT))"
     #act_split_pattern = r"(Chap(?:ter)?\.?\s*\d+\.?\s*(?:AN ACT|RESOLVE|ANACT|ACT REL|ACT ESTA))"
-    act_split_pattern = r"((?:AN ACT|RESOLVE|ANACT).{0,100}?Chap(?:ter)?\.?\s*\d+\.?|Chap(?:ter)?\.?\s*\d+\.?\s*(?:AN ACT|RESOLVE|ANACT|ACT REL|ACT ESTA))"
+
+    # this new pattern (12/5) allows for situations where "an" doesn't get parsed correctly
+    # it'll look for ACT (which tends to get parsed well) within 6 chars of a chapter number
+    # 6 chars because we don't want to capture XX of the acts of XXXX, > 7 would capture this
+    # tested with acts/resolves of 1959 and it splits them perfectly
+    act_split_pattern = r"((?:AN ACT|RESOLVE).{0,100}?Chap(?:ter)?\.?\s*\d+\.?|Chap(?:ter)?\.?\s*\d+\.?\s*.{0,6}(?:AN ACT|RESOLVE|ACT|ANACT|ACT EST|ACT REL))"
     # Split the text based on the act pattern
     acts = re.split(act_split_pattern, text_chunk, flags=re.IGNORECASE)
     # Remove empty strings and combine the act numbers with their text
@@ -151,7 +156,7 @@ def get_full_doc_blocks(job_id):
     doc = client.get_document_analysis(
             JobId=job_id,
         )
-    next_token = doc['NextToken']
+    next_token = doc.get('NextToken', None)
     blocks = doc.get("Blocks", [])
     while next_token:
         response = client.get_document_analysis(

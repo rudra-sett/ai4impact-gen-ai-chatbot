@@ -48,6 +48,7 @@ def download_page(link):
             time.sleep(15)
             act_page_response = urllib.request.urlopen(link)
             act_html = act_page_response.read().decode('utf-8')
+            print(act_page_response.getcode())
             act_soup = BeautifulSoup(act_html, 'html.parser')
             act_dls = act_soup.find_all('ds-file-download-link')
             print(act_dls) 
@@ -59,20 +60,21 @@ def download_page(link):
                 file = urllib.request.urlopen(host + f'/server/api/core/bitstreams/{item_id}/content').read()
                 year = dl_name[:4]
                 law_type = 'acts'
-                if "resolve" in dl_name:
-                    law_type = 'acts'
-                if 'pdf' in dl_info[1]:
+                if "resolve" in dl_name.lower():
+                    law_type = 'resolves'
+                if 'pdf' in dl_info[1] and len(act_dls) == 1:
                     key = f"archives/{law_type}/{year}/acts-and-resolves-{year}-chapter-{int(dl_name[-4:])}.pdf"
                     print(key)
-                    s3.put_object(Bucket=bucket_name, Key=key, Body=file)
-                    if (int(year) > 1959):
-                        job_id = start_job(bucket_name,key)
-                        add_to_queue(key + " job id - " + job_id,job_id)
+                    s3.put_object(Bucket=bucket_name, Key=key, Body=file)                    
+                    job_id = start_job(bucket_name,key)
+                    add_to_queue(key + " job id - " + job_id,job_id)
                 elif 'txt' in dl_info[1]:
                     key = f"{law_type}/{year}/chapter-{int(dl_name[-4:])}.txt"
                     print(key)
                     s3.put_object(Bucket=bucket_name, Key=key, Body=file)                
                 stop = True
+            if len(act_dls) == 0:
+                raise Exception("Couldn't get any links, put this back into the queue!")
         except urllib.error.HTTPError as e:
             print(e)
             time.sleep(15)            
