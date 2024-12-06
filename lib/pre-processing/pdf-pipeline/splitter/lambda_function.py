@@ -104,7 +104,7 @@ def remove_header(header_block, blocks, block_id_map):
         child_block = get_block_from_id(child, block_id_map)
         if child_block is not None:
             text += child_block.get('Text', '')
-    if "Chap" in text or "Chapter" in text or "CHAP" in text or "CHAPTERS" in text:
+    if ("CHAPS" in text or "CHAPTERS" in text or "ACTS," in text) and ("an" not in text.lower()):
         for child in children:
             child_block = get_block_from_id(child, block_id_map)
             if child_block in blocks:
@@ -112,7 +112,7 @@ def remove_header(header_block, blocks, block_id_map):
     return text
     
 # Splits the full text into acts and resolves
-def split_text_by_act(text_chunk):
+def split_text_by_act(text_chunk,year):
     # Regular expression to identify the start of each act (e.g., "Chap. X." or "Chapter X.")
     # act_split_pattern = r"(Chap\.\s*\d+\.|Chapter\s*\d+\.|CHAP\.\s*\d+\.|CHAPTER\s*\d+\.)"
     # act_split_pattern = r"(Chap(?:ter)?\s*\d+\s*(?:AN ACT|RESOLVE|ANACT))"
@@ -122,15 +122,31 @@ def split_text_by_act(text_chunk):
     # it'll look for ACT (which tends to get parsed well) within 6 chars of a chapter number
     # 6 chars because we don't want to capture XX of the acts of XXXX, > 7 would capture this
     # tested with acts/resolves of 1959 and it splits them perfectly
-    act_split_pattern = r"((?:AN ACT|RESOLVE).{0,100}?Chap(?:ter)?\.?\s*\d+\.?|Chap(?:ter)?\.?\s*\d+\.?\s*.{0,6}(?:AN ACT|RESOLVE|ACT|ANACT|ACT EST|ACT REL))"
+    act_split_pattern = r"(Chap(?:ter)?\.?\s*\d+\.?\s*.{0,6}(?:AN ACT|RESOLVE|Av ACT|ANACT|ACT AUTH|ACT EST|ACT REL|Ax ACT|avact|axact|ayact|amact|am act|actrel|actest|actauth|nact|actmak|act mak|ACTF|act furt|act exem|actexem))"
+    if int(year) < 1960:
+        act_split_pattern = r"((?:AN ACT|RESOLVE).{0,100}?Chap(?:ter)?\.?\s*\d+\.?|Chap(?:ter)?\.?\s*\d+\.?\s*.{0,6}(?:AN ACT|RESOLVE|ACT|ANACT|ACT EST|ACT REL))"
+    
     # Split the text based on the act pattern
     acts = re.split(act_split_pattern, text_chunk, flags=re.IGNORECASE)
     # Remove empty strings and combine the act numbers with their text
     clean_acts = []
+    # Prevent accidental over-writes to chapters just in case there's parsing issues
+    # later in the volume
+    act_map = {}
     for i in range(1, len(acts), 2):
-        act_number = acts[i].strip()
+        act_number = acts[i].strip()    
+        act_digit = re.findall(r'\d+', act_number)[0]
+        print(act_number)
+        if is_resolve(act_number):
+            act_type = "resolve" 
+        else:
+            act_type = "act"
         act_text = acts[i+1].strip()
-        clean_acts.append(f"{act_number} {act_text}")
+        if not act_map.get(act_type + act_digit):
+            act_map[act_type + act_digit] = True
+            act_text = act_text.replace("- ","-")
+            act_text = act_text.replace("SECTION","\nSECTION")
+            clean_acts.append(f"{act_number} {act_text}")
     return clean_acts
 
 # Function to process the acts and resolves
@@ -191,7 +207,8 @@ def pipeline(job_id,filename):
     # Remove punctuation from the text
     # clean_text = text_chunk.translate(str.maketrans('', '', string.punctuation))
     # Turn the lines into acts
-    acts = split_text_by_act(text_chunk)
+    year = extract_year(filename)
+    acts = split_text_by_act(text_chunk,year)
     print("Got acts")
     # Process and save acts and resolves to S3
     process_acts_resolves(acts, filename, bucket_name)
