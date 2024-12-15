@@ -150,83 +150,20 @@ export default function Chat(props: {
     await Auth.currentAuthenticatedUser().then((value) => username = value.username);
     if (!username) return;
 
-    try {
-      setRunning(true);
+    try {      
       props.setLoading(true);
-      let receivedData = {};
-
-      const WS_URL = appContext.wsEndpoint + "/"
-
-      // Get a JWT token for the API to authenticate on      
-      const TOKEN = await Utils.authenticate()
-
-      const wsUrl = WS_URL + '?Authorization=' + TOKEN;
-      const ws = new WebSocket(wsUrl);
-
-      let gotData = false;
-
-      // Event listener for when the connection is open
-      ws.addEventListener('open', function open() {
-        console.log('Connected to the WebSocket server');
-        const message = JSON.stringify({
-          "action": "getChatbotResponse",
-          "data": {
-            userMessage: `Please return a structured list of amendments for chapter ${props.chapter} of the acts of ${props.year} using send_amendments_to_client.`,
-            chatHistory: [],
-            chapter: props.chapter,
-            year: props.year,
-            user_id: username,
-            doNotSave: true,
-            session_id: session.id,
-          }
-        });
-
-        ws.send(message);
-
+      const apiClient = new ApiClient(appContext);
+      let amendments = await apiClient.acts.getAct(props.year, props.chapter);
+      (amendments as any[]).sort((a, b) => {
+        const yearA = parseInt(a.amending_act.match(/of (\d{4})/)[1], 10);
+        const yearB = parseInt(b.amending_act.match(/of (\d{4})/)[1], 10);
+        return yearA - yearB;
       });
-      // Event listener for incoming messages
-      ws.addEventListener('message', async function incoming(data) {
-        /**This is a custom tag from the API that denotes that an error occured
-         * and the next chunk will be an error message. */
-        if (data.data.includes("<!ERROR!>:")) {
-          addNotification("error", data.data);
-          ws.close();
-          return;
-        }
 
-        if (data.data.includes("[") && !gotData) {
-          // this is the object with the amendments! 
-          console.log(data.data)
-          gotData = true;
-          receivedData = JSON.parse(data.data);
-
-          (receivedData as any[]).sort((a, b) => {
-            const yearA = parseInt(a.amending_act.match(/of (\d{4})/)[1], 10);
-            const yearB = parseInt(b.amending_act.match(/of (\d{4})/)[1], 10);
-            return yearA - yearB;
-          });
-
-          props.setAmendments(receivedData as any[])
-        }
-
-      });
-      // Handle possible errors
-      ws.addEventListener('error', function error(err) {
-        setRunning(false);
-        props.setLoading(false);
-        console.error('WebSocket error:', err);
-      });
-      // Handle WebSocket closure
-      ws.addEventListener('close', async function close() {
-        setRunning(false);
-        props.setLoading(false);
-        console.log('Disconnected from the WebSocket server');
-      });
+      props.setAmendments(amendments as any[])
 
     } catch (error) {
-      console.error('Error sending message:', error);
-      alert('Sorry, something has gone horribly wrong! Please try again or refresh the page.');
-      setRunning(false);
+      console.error('Could not get amendments:', error);            
       props.setLoading(false);
     }
   }
