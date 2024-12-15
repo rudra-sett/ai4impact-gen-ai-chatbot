@@ -91,7 +91,7 @@ export class ChatBotApi extends Construct {
 
     const amendmentsAPIIntegration = new HttpLambdaIntegration('AmendmentsAPIIntegration', lambdaFunctions.amendmentsFunction);
     restBackend.restAPI.addRoutes({
-      path: "/get-amendment",
+      path: "/get-amendments",
       methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.POST, apigwv2.HttpMethod.DELETE],
       integration: amendmentsAPIIntegration,
       authorizer: httpAuthorizer,

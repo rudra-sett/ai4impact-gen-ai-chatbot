@@ -62,17 +62,38 @@ def download_page(link):
                 law_type = 'acts'
                 if "resolve" in dl_name.lower():
                     law_type = 'resolves'
+                # skip if there is no chapter number at all
+                print(dl_name)                
                 if 'pdf' in dl_info[1] and len(act_dls) == 1:
-                    key = f"archives/{law_type}/{year}/acts-and-resolves-{year}-chapter-{int(dl_name[-4:])}.pdf"
+                    if (dl_name[-4:-1].isalpha()):
+                        print("this doesn't have a chapter!")
+                        stop = True
+                        continue
+                    if dl_name[-1].isalpha():  
+                        key = f"archives/{law_type}/{year}/acts-and-resolves-{year}-chapter-{str(int(dl_name[-5:-1])) + dl_name[-1]}.pdf"
+                    else:
+                        key = f"archives/{law_type}/{year}/acts-and-resolves-{year}-chapter-{int(dl_name[-4:])}.pdf"
                     print(key)
                     s3.put_object(Bucket=bucket_name, Key=key, Body=file)                    
                     job_id = start_job(bucket_name,key)
                     add_to_queue(key + " job id - " + job_id,job_id)
+                    stop = True
                 elif 'txt' in dl_info[1]:
-                    key = f"{law_type}/{year}/chapter-{int(dl_name[-4:])}.txt"
+                    if (dl_name[-4:-1].isalpha()):
+                        print("this doesn't have a chapter!")
+                        stop = True
+                        continue
+                    # handle chapter names like 0025a in addition to 0025
+                    if dl_name[-1].isalpha():                        
+                        key = f"{law_type}/{year}/chapter-{str(int(dl_name[-5:-1])) + dl_name[-1]}.txt"
+                    elif dl_name[-4:].isnumeric() == False and dl_name[-3:].isnumeric():                        
+                        key = f"{law_type}/{year}/chapter-{int(dl_name[-3:])}.txt"
+                    else:
+                        key = f"{law_type}/{year}/chapter-{int(dl_name[-4:])}.txt"
                     print(key)
                     s3.put_object(Bucket=bucket_name, Key=key, Body=file)                
-                stop = True
+                    stop = True
+                    break
             if len(act_dls) == 0:
                 raise Exception("Couldn't get any links, put this back into the queue!")
         except urllib.error.HTTPError as e:

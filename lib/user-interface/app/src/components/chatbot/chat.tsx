@@ -153,7 +153,7 @@ export default function Chat(props: {
     try {      
       props.setLoading(true);
       const apiClient = new ApiClient(appContext);
-      let amendments = await apiClient.acts.getAct(props.year, props.chapter);
+      let amendments = await apiClient.acts.getAmendments(props.year, props.chapter);
       (amendments as any[]).sort((a, b) => {
         const yearA = parseInt(a.amending_act.match(/of (\d{4})/)[1], 10);
         const yearB = parseInt(b.amending_act.match(/of (\d{4})/)[1], 10);
