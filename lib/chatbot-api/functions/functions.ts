@@ -35,9 +35,36 @@ export class LambdaFunctionStack extends cdk.Stack {
   public readonly retrieveActFunction: lambda.Function;
   public readonly searchLawsFunction: lambda.Function;
   public readonly amendmentsFunction : lambda.Function;
+  public readonly insertAmendmentFunction : lambda.Function;
 
   constructor(scope: Construct, id: string, props: LambdaFunctionStackProps) {
     super(scope, id);
+
+    const insertAmendmentFunction = new lambda.Function(scope, 'InsertAmendmentFunction', {
+      runtime: lambda.Runtime.PYTHON_3_12, 
+      code: lambda.Code.fromAsset(path.join(__dirname, 'insert-amendment')), 
+      handler: 'lambda_function.lambda_handler', 
+      environment: {
+        "BUCKET": props.knowledgeBucket.bucketName
+      },
+      timeout: cdk.Duration.seconds(30)
+    });
+
+    insertAmendmentFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'bedrock:InvokeModel'
+      ],
+      resources: ['*']
+    }));
+
+    insertAmendmentFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        's3:*'
+      ],
+      resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*",props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*" ]
+    }));
 
     const searchLawsFunction = new lambda.Function(scope, 'LawSearchFunction', {
       runtime: lambda.Runtime.PYTHON_3_12, // Choose any supported Node.js runtime
