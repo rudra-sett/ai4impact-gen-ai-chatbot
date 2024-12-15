@@ -66,6 +66,8 @@ export class LambdaFunctionStack extends cdk.Stack {
       resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*",props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*" ]
     }));
 
+    this.insertAmendmentFunction = insertAmendmentFunction;
+
     const searchLawsFunction = new lambda.Function(scope, 'LawSearchFunction', {
       runtime: lambda.Runtime.PYTHON_3_12, // Choose any supported Node.js runtime
       code: lambda.Code.fromAsset(path.join(__dirname, 'search-laws')), // Points to the lambda directory
