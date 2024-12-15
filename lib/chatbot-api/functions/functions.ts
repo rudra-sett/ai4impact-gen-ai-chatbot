@@ -133,6 +133,16 @@ export class LambdaFunctionStack extends cdk.Stack {
     amendmentFunction.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: [
+        'bedrock:InvokeModelWithResponseStream',
+        'bedrock:InvokeModel',
+
+      ],
+      resources: ["*"]
+    }));
+
+    amendmentFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
         'aoss:BatchGetCollection',
         'aoss:APIAccessAll'
       ],

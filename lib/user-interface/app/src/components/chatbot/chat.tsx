@@ -161,7 +161,7 @@ export default function Chat(props: {
       });
 
       props.setAmendments(amendments as any[])
-
+      props.setLoading(false);
     } catch (error) {
       console.error('Could not get amendments:', error);            
       props.setLoading(false);
