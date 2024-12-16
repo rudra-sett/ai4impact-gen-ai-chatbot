@@ -2,23 +2,28 @@ import BaseAppLayout from "../../../components/base-app-layout";
 import Chat from "../../../components/chatbot/chat";
 
 import { useParams, useNavigate,Link } from "react-router-dom";
-import { Header, Cards, CollectionPreferences, Box,Pagination, Spinner, Tabs } from "@cloudscape-design/components";
-import { useState } from 'react'
+import { Header, Cards, CollectionPreferences, Box,Pagination, Spinner, Tabs, Button } from "@cloudscape-design/components";
+import { useState, useContext } from 'react'
 import Search from "../../../components/search/search";
 import useOnFollow from "../../../common/hooks/use-on-follow";
+import { ApiClient } from "../../../common/api-client/api-client";
+import { AppContext } from "../../../common/app-context";
 
 export default function Playground() {
   const { sessionId, chapter, year } = useParams();
   const navigate = useNavigate();
   const onFollow = useOnFollow();
+  const appContext = useContext(AppContext);
   
   const [amendments, setAmendments] = useState([])
   const [searchResults, setSearchResults] = useState([])
+  const [actText, setActText] = useState("Enter a chapter and year to retrieve an Act");
 
   const [selectedItems, setSelectedItems] = useState([]);
   const [currentPageIndex, setCurrentPageIndex] = useState(1);
 
   const [loading, setLoading] = useState(false);
+  const [insertionLoading, setInsertionLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState("chat");
   
@@ -31,6 +36,17 @@ export default function Playground() {
     window.location.pathname
   );
 
+  const applyAmendment = async (amendingYear: string, amendingChapter: string) => {
+    const apiClient = new ApiClient(appContext);
+    setInsertionLoading(true);
+    try {
+      let conformed = await apiClient.acts.insertAmendment(year, chapter, amendingYear, amendingChapter);
+      setActText(conformed)
+    } catch (e) {
+      console.error(e)
+    }
+    setInsertionLoading(false);
+  }
 
   return (
     <BaseAppLayout
@@ -54,6 +70,11 @@ export default function Playground() {
                 header: "Amendment Description",
                 content: (item) => item.amendment_description,
               },
+              {
+                id: "tools",
+                header: "Amendment Tools",
+                content: (item) => <Button loading={insertionLoading} variant="primary" onClick={() => {applyAmendment(item.amending_act.split(" ").slice(-1)[0],item.amending_act.split(" ")[1])}}>Insert Amendment</Button>,
+              },
             ],
           }}
           cardsPerRow={[{ cards: 1 }, { minWidth: 500, cards: 2 }]}
@@ -61,7 +82,7 @@ export default function Playground() {
           loadingText="Loading amendments..."
           // selectionType="multi"
           trackBy="amending_act"
-          visibleSections={["description"]}
+          visibleSections={["description","tools"]}
           loading={loading}
           empty={
             <Box margin={{ vertical: "xs" }} textAlign="center" color="inherit">
@@ -124,7 +145,7 @@ export default function Playground() {
         tabs={[
           { label: "Chat",
             id: "chat",
-            content:( <Chat sessionId={sessionId} setAmendments={setAmendments} setLoading={setLoading} chapter={chapter} year={year} changeAct={changeActPage}/>)
+            content:( <Chat actText={actText} setActText={setActText} sessionId={sessionId} setAmendments={setAmendments} setLoading={setLoading} chapter={chapter} year={year} changeAct={changeActPage}/>)
           },
           {
             label: "Search",

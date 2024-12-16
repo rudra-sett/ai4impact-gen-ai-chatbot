@@ -70,4 +70,26 @@ export class ActsClient {
     const result = await response.json();
     return result;
   }
+
+  async insertAmendment(year: string, chapter: string, amendingYear : string, amendingChapter : string) {
+    const auth = await Utils.authenticate();
+    const response = await fetch(this.API + '/insert-amendment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization' : auth
+      },
+      body: JSON.stringify({
+        year: year,
+        chapter: chapter,
+        amend_year: amendingYear,
+        amend_chapter: amendingChapter        
+      }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to get amendments');
+    }
+    const result = await response.json();
+    return result;
+  }
 }

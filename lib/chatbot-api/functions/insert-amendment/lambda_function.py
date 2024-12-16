@@ -22,7 +22,10 @@ def lambda_handler(event, context):
     original = get_act_text(amended_year,amended_chapter)
     amendment = get_act_text(amending_year, amending_chapter)
 
-    return process_amendments(original,f"Chapter {amended_chapter} of the Acts of {amended_year}", [amendment])
+    return {
+        "statusCode" : 200,
+        "body" : process_amendments(original,f"Chapter {amended_chapter} of the Acts of {amended_year}", [amendment])
+    }
 
 # the function is designed to be able to accept multiple amendments, but we will only give it one
 # if you were to pass in a full list of amendments, this could take as long as 2-3 minutes to finish
@@ -199,7 +202,7 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
     if amendment_type == 'replace':
         return original_text.replace(
             structured_amendment['target_text'],
-            structured_amendment['new_text']
+            '[REPLACED:]' + structured_amendment['new_text']
         )
     elif amendment_type == 'insert':
         idx = original_text.find(structured_amendment['target_text'])
@@ -208,9 +211,9 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
             return original_text
         if structured_amendment['position'] == 'after':
             idx += len(structured_amendment['target_text'])
-        return original_text[:idx] + " " + structured_amendment['new_text'] + original_text[idx:]
+        return original_text[:idx] + " [INSERTED:] " + structured_amendment['new_text'] + original_text[idx:]
     elif amendment_type == 'strike':
-        return original_text.replace(structured_amendment['target_text'], '')
+        return original_text.replace(structured_amendment['target_text'], '[REMOVED]')
 
     return original_text
 

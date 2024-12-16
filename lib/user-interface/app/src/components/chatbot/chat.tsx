@@ -22,6 +22,8 @@ export default function Chat(props: {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>,
   chapter: string,
   year: string,
+  actText: string,
+  setActText: React.Dispatch<React.SetStateAction<string>>
   changeAct : (year: string, chapter: string) => void
 }) {
   const appContext = useContext(AppContext);
@@ -39,7 +41,7 @@ export default function Chat(props: {
 
   const [year, setYear] = useState(props.year);
   const [act, setAct] = useState(props.chapter);
-  const [actText, setActText] = useState("Enter a chapter and year to retrieve an Act");
+  // const [actText, setActText] = useState("Enter a chapter and year to retrieve an Act");
   const [actLoading, setActLoading] = useState(false);
 
 
@@ -136,7 +138,7 @@ export default function Chat(props: {
     const text = await apiClient.acts.getAct(props.year, props.chapter);
     setYear(props.year);
     setAct(props.chapter);
-    setActText(text);
+    props.setActText(text);
     getAmendments();
     setActLoading(false);})();    
   }, [props.year,props.chapter])
@@ -218,7 +220,7 @@ export default function Chat(props: {
             <Box textAlign="center">
             <TextContent>
               {/* {actText} */}
-              {actText.split('\n').map((line, index) => (
+              {props.actText.split('\n').map((line, index) => (
                 <Fragment key={index}>
                   {line}
                   <br />
