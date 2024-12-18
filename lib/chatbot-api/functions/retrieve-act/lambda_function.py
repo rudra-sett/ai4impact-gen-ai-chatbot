@@ -7,7 +7,7 @@ s3 = boto3.client('s3')
 def get_s3_chunks(bucket_name, year, chapter):
     
     # Define the prefix for the desired files
-    prefix = f"cleaned/acts/{year}/chapter-{chapter}.txt"
+    prefix = f"acts/{year}/chapter-{chapter}.txt"
     
     # Retrieve all objects with the given prefix
     response = s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
