@@ -1,6 +1,6 @@
 import boto3
 import json
-import re
+import regex as re
 import os
 
 bedrock = boto3.client('bedrock-runtime')
@@ -20,7 +20,12 @@ def lambda_handler(event, context):
     amended_chapter = data['chapter']
     amending_year = data['amend_year']
     amending_chapter = data['amend_chapter']
-    original = get_act_text(amended_year, amended_chapter)
+    
+    # original = get_act_text(amended_year, amended_chapter)
+    if 'client_text' in data:
+        original = data['client_text']
+    else:
+        original = get_act_text(amended_year, amended_chapter)
     amendment = get_act_text(amending_year, amending_chapter)
 
     return {
@@ -200,7 +205,7 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
         start_esc = re.escape(start_marker)
         end_esc = re.escape(end_marker)
         
-        pattern = rf'(?P<content>{start_esc}.*?{end_esc})'
+        pattern = rf'(?P<content>{start_esc}.*?{end_esc}){{s<=10,e<=10}}'
         match = re.search(pattern, amendment_text, flags=re.DOTALL)
         if not match:
             if start_marker == end_marker:
@@ -221,7 +226,7 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
         start_esc = re.escape(start)
         end_esc = re.escape(end)
         
-        pattern = rf'(?P<content>{start_esc}.*?{end_esc})'
+        pattern = rf'(?P<content>{start_esc}.*?{end_esc}){{s<=10,e<=10}}'
         match = re.search(pattern, original_text, flags=re.DOTALL)
         if not match:
             if start_esc == end_esc:
@@ -246,20 +251,34 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
 
     # Apply the changes according to the amendment_type
     amendment_type = structured_amendment['amendment_type']
+    max_subs = 10
+    max_errs = 10
+    # Build a fuzzy pattern for the target text.
+    # This pattern allows up to `max_substitutions` substitutions.
+    target_text = structured_amendment['target_text']
+    fuzzy_pattern = f"({re.escape(target_text)}){{s<={max_subs},e<={max_errs}}}"
+    
     if amendment_type == 'replace':
-        return original_text.replace(
-            structured_amendment['target_text'],
-            '[REPLACED:]' + structured_amendment['new_text']
-        )
-    elif amendment_type == 'insert':        
-        idx = original_text.find(structured_amendment['target_text'])
-        if idx == -1:
-            print(f"Could not find target text: {structured_amendment['target_text']}")
+        # Fuzzy replace using regex.sub()
+        return re.sub(fuzzy_pattern, structured_amendment['new_text'], original_text)
+    
+    elif amendment_type == 'insert':
+        # We need to find the fuzzy match first
+        match = re.search(fuzzy_pattern, original_text)
+        if not match:
+            print(f"Could not (fuzzily) find target text: {structured_amendment['target_text']}")
             return original_text
+        
+        # Determine insertion position
         if structured_amendment['position'] == 'after':
-            idx += len(structured_amendment['target_text'])
-        return original_text[:idx] + " [INSERTED:] " + structured_amendment['new_text'] + original_text[idx:]
+            insert_idx = match.end()  # after the matched text
+        else:
+            insert_idx = match.start()  # before the matched text
+        
+        return original_text[:insert_idx] + structured_amendment['new_text'] + original_text[insert_idx:]
+    
     elif amendment_type == 'strike':
-        return original_text.replace(structured_amendment['target_text'], '[REMOVED]')
-
+        # Fuzzy remove (strike) by substituting with an empty string
+        return re.sub(fuzzy_pattern, '', original_text)
+    
     return original_text

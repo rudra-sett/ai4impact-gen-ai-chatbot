@@ -71,7 +71,7 @@ export class ActsClient {
     return result;
   }
 
-  async insertAmendment(year: string, chapter: string, amendingYear : string, amendingChapter : string) {
+  async insertAmendment(year: string, chapter: string, amendingYear : string, amendingChapter : string, clientText : string) {
     const auth = await Utils.authenticate();
     const response = await fetch(this.API + '/insert-amendment', {
       method: 'POST',
@@ -83,7 +83,8 @@ export class ActsClient {
         year: year,
         chapter: chapter,
         amend_year: amendingYear,
-        amend_chapter: amendingChapter        
+        amend_chapter: amendingChapter,
+        client_text: clientText        
       }),
     });
     if (!response.ok) {

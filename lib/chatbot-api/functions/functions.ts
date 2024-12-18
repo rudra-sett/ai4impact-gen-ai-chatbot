@@ -42,7 +42,15 @@ export class LambdaFunctionStack extends cdk.Stack {
 
     const insertAmendmentFunction = new lambda.Function(scope, 'InsertAmendmentFunction', {
       runtime: lambda.Runtime.PYTHON_3_12, 
-      code: lambda.Code.fromAsset(path.join(__dirname, 'insert-amendment')), 
+      code: lambda.Code.fromAsset(path.join(__dirname, 'insert-amendment'), {
+        bundling: {
+          image: lambda.Runtime.NODEJS_20_X.bundlingImage,
+          command: [
+            'bash', '-c',
+              'pip install -r requirements.txt -t /asset-output && cp -au . /asset-output'
+          ],
+        },
+      }), 
       handler: 'lambda_function.lambda_handler', 
       environment: {
         "BUCKET": props.knowledgeBucket.bucketName,

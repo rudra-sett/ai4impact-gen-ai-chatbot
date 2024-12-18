@@ -1,11 +1,11 @@
-import { useContext, useEffect, useState, Fragment } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   ChatBotHistoryItem,
   ChatBotMessageType,
   FeedbackData
 } from "./types";
 import { Auth } from "aws-amplify";
-import { SpaceBetween, StatusIndicator, Alert, Flashbar, ColumnLayout, Input, Button, TextContent, Spinner, Box } from "@cloudscape-design/components";
+import { SpaceBetween, StatusIndicator, Alert, ColumnLayout, Input, Button, TextContent, Box } from "@cloudscape-design/components";
 import { v4 as uuidv4 } from "uuid";
 import { AppContext } from "../../common/app-context";
 import { ApiClient } from "../../common/api-client/api-client";
@@ -14,7 +14,6 @@ import ChatInputPanel, { ChatScrollState } from "./chat-input-panel";
 import styles from "../../styles/chat.module.scss";
 import { CHATBOT_NAME } from "../../common/constants";
 import { useNotifications } from "../notif-manager";
-import { Utils } from "../../common/utils";
 
 export default function Chat(props: {
   sessionId?: string,
@@ -24,7 +23,7 @@ export default function Chat(props: {
   year: string,
   actText: string,
   setActText: React.Dispatch<React.SetStateAction<string>>
-  changeAct : (year: string, chapter: string) => void
+  changeAct: (year: string, chapter: string) => void
 }) {
   const appContext = useContext(AppContext);
   const [running, setRunning] = useState<boolean>(true);
@@ -34,29 +33,16 @@ export default function Chat(props: {
   });
 
   const { notifications, addNotification } = useNotifications();
-
-  const [messageHistory, setMessageHistory] = useState<ChatBotHistoryItem[]>(
-    []
-  );
-
+  const [messageHistory, setMessageHistory] = useState<ChatBotHistoryItem[]>([]);
   const [year, setYear] = useState(props.year);
   const [act, setAct] = useState(props.chapter);
-  // const [actText, setActText] = useState("Enter a chapter and year to retrieve an Act");
   const [actLoading, setActLoading] = useState(false);
 
-
-
-  /** Loads session history */
   useEffect(() => {
     if (!appContext) return;
     setMessageHistory([]);
 
     (async () => {
-      /** If there is no session ID, then this must be a new session
-       * and there is no need to load one from the backend.
-       * However, even if a session ID is set and there is no saved session in the 
-       * backend, there will be no errors - the API will simply return a blank session
-       */
       if (!props.sessionId) {
         setSession({ id: uuidv4(), loading: false });
         return;
@@ -65,14 +51,12 @@ export default function Chat(props: {
       setSession({ id: props.sessionId, loading: true });
       const apiClient = new ApiClient(appContext);
       try {
-        // const result = await apiClient.sessions.getSession(props.sessionId);
         let username;
-        await Auth.currentAuthenticatedUser().then((value) => username = value.username);
+        await Auth.currentAuthenticatedUser().then((value) => (username = value.username));
         if (!username) return;
         const hist = await apiClient.sessions.getSession(props.sessionId, username);
 
         if (hist) {
-
           ChatScrollState.skipNextHistoryUpdate = true;
           ChatScrollState.skipNextScrollEvent = true;
 
@@ -93,20 +77,25 @@ export default function Chat(props: {
         }
         setSession({ id: props.sessionId, loading: false });
         setRunning(false);
-      } catch (error) {
+      } catch (error: any) {
         console.log(error);
-        addNotification("error", error.message)
-        addNotification("info", "Please refresh the page")
+        addNotification("error", error.message);
+        addNotification("info", "Please refresh the page");
       }
     })();
   }, [appContext, props.sessionId]);
 
-  /** Adds some metadata to the user's feedback */
-  const handleFeedback = (feedbackType: 1 | 0, idx: number, message: ChatBotHistoryItem, feedbackTopic?: string, feedbackProblem?: string, feedbackMessage?: string) => {
+  const handleFeedback = (
+    feedbackType: 1 | 0,
+    idx: number,
+    message: ChatBotHistoryItem,
+    feedbackTopic?: string,
+    feedbackProblem?: string,
+    feedbackMessage?: string
+  ) => {
     if (props.sessionId) {
-      console.log("submitting feedback...")
-
-      const prompt = messageHistory[idx - 1].content
+      console.log("submitting feedback...");
+      const prompt = messageHistory[idx - 1]?.content ?? "";
       const completion = message.content;
 
       const feedbackData = {
@@ -123,74 +112,49 @@ export default function Chat(props: {
     }
   };
 
-  /** Makes the API call via the ApiClient to submit the feedback */
   const addUserFeedback = async (feedbackData: FeedbackData) => {
     if (!appContext) return;
     const apiClient = new ApiClient(appContext);
     await apiClient.userFeedback.sendUserFeedback(feedbackData);
-  }
+  };
 
   useEffect(() => {
     if (!appContext) return;
-    setActLoading(true);
-    (async () => 
-    {const apiClient = new ApiClient(appContext);
-    const text = await apiClient.acts.getAct(props.year, props.chapter);
-    setYear(props.year);
-    setAct(props.chapter);
-    props.setActText(text);
-    getAmendments();
-    setActLoading(false);})();    
-  }, [props.year,props.chapter])
-
-  const getAct = async () => {
-    props.changeAct(year,act)
-  }
-
-  const getAmendments = async () => {
-    let username: string;
-    await Auth.currentAuthenticatedUser().then((value) => username = value.username);
-    if (!username) return;
-
-    try {      
-      props.setLoading(true);
+    (async () => {
+      setActLoading(true);
       const apiClient = new ApiClient(appContext);
-      let amendments = await apiClient.acts.getAmendments(props.year, props.chapter);
-      (amendments as any[]).sort((a, b) => {
-        const yearA = parseInt(a.amending_act.match(/of (\d{4})/)[1], 10);
-        const yearB = parseInt(b.amending_act.match(/of (\d{4})/)[1], 10);
-        return yearA - yearB;
-      });
+      const text = await apiClient.acts.getAct(props.year, props.chapter);
+      setYear(props.year);
+      setAct(props.chapter);
+      props.setActText(text);
+      // We rely on Playground to fetch and highlight amendments, so no diff logic here.
+      setActLoading(false);
+    })();
+  }, [props.year, props.chapter]);
 
-      props.setAmendments(amendments as any[])
-      props.setLoading(false);
-    } catch (error) {
-      console.error('Could not get amendments:', error);            
-      props.setLoading(false);
-    }
-  }
+  const getAct = () => {
+    props.changeAct(year, act);
+  };
 
   return (
     <div>
       <ColumnLayout columns={2}>
         <div className={styles.chat_container}>
           <SpaceBetween direction="vertical" size="m">
-
             {messageHistory.length == 0 && !session?.loading && (
-              <Alert
-                statusIconAriaLabel="Info"
-                header=""
-              >
+              <Alert statusIconAriaLabel="Info" header="">
                 AI Models can make mistakes. Be mindful in validating important information.
-              </Alert>)}
-
+              </Alert>
+            )}
 
             {messageHistory.map((message, idx) => (
               <ChatMessage
                 key={idx}
                 message={message}
                 onThumbsUp={() => handleFeedback(1, idx, message)}
-                onThumbsDown={(feedbackTopic: string, feedbackType: string, feedbackMessage: string) => handleFeedback(0, idx, message, feedbackTopic, feedbackType, feedbackMessage)}
+                onThumbsDown={(feedbackTopic: string, feedbackType: string, feedbackMessage: string) =>
+                  handleFeedback(0, idx, message, feedbackTopic, feedbackType, feedbackMessage)
+                }
               />
             ))}
           </SpaceBetween>
@@ -216,19 +180,18 @@ export default function Chat(props: {
         </div>
         <div>
           <div className={styles.chat_container}>
-            { actLoading? <Box textAlign="center"><StatusIndicator type="loading">Loading law</StatusIndicator></Box>:
-            <Box textAlign="center">
-            <TextContent>
-              {/* {actText} */}
-              {props.actText.split('\n').map((line, index) => (
-                <Fragment key={index}>
-                  {line}
-                  <br />
-                </Fragment>
-              ))}
-            </TextContent>
-            </Box>
-            }
+            {actLoading ? (
+              <Box textAlign="center">
+                <StatusIndicator type="loading">Loading law</StatusIndicator>
+              </Box>
+            ) : (
+              // Now the actText may contain HTML tags due to diff highlighting
+              <Box textAlign="center">
+                <TextContent>
+                  <div dangerouslySetInnerHTML={{ __html: props.actText }} />
+                </TextContent>
+              </Box>
+            )}
           </div>
           <div className={styles.input_container}>
             <SpaceBetween direction="horizontal" size="xs">
@@ -242,8 +205,9 @@ export default function Chat(props: {
                 value={act}
                 placeholder="Chapter"
               />
-              <Button variant="primary" onClick={getAct} >Retrieve</Button>
-              {/* <Button variant="primary" onClick={getAmendments} >Amendments</Button> */}
+              <Button variant="primary" onClick={getAct}>
+                Retrieve
+              </Button>
             </SpaceBetween>
           </div>
         </div>
