@@ -44,7 +44,7 @@ export class LambdaFunctionStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_12, 
       code: lambda.Code.fromAsset(path.join(__dirname, 'insert-amendment'), {
         bundling: {
-          image: lambda.Runtime.NODEJS_20_X.bundlingImage,
+          image: lambda.Runtime.PYTHON_3_12.bundlingImage,
           command: [
             'bash', '-c',
               'pip install -r requirements.txt -t /asset-output && cp -au . /asset-output'
