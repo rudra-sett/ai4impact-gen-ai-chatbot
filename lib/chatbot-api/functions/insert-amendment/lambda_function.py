@@ -24,7 +24,7 @@ def lambda_handler(event, context):
 
     return {
         "statusCode" : 200,
-        "body" : process_amendments(original,f"Chapter {amended_chapter} of the Acts of {amended_year}", [amendment])
+        "body" : json.dumps(process_amendments(original,f"Chapter {amended_chapter} of the Acts of {amended_year}", [amendment]))
     }
 
 # the function is designed to be able to accept multiple amendments, but we will only give it one
@@ -43,25 +43,37 @@ def structure_amendment(amendment_text, original_text, chapter_name):
     body = {
         "anthropic_version": "bedrock-2023-05-31",
         "system": """
-                    You are a legal document editor. You will be given an original Session Law tagged as <original_text> and an amending Session Law tagged as <amending_act>. You will use a text editor to look for statements in the amending act that change content in the original act.
-                    You will use a text editing tool to apply those changes to the original session law. You will make insertions, replacments, or deletions of words, sentences, paragraphs, or even full sections. 
-                    You can make direct replacements of small amounts of text, or use selectors to select large sections of texts for edits. Selectors are short phrases that denote the start or end of large portions of text. 
-                    Follow these guidelines:
+                    You are a skilled, precise legal document editor. Your task is to accurately apply changes from an amending Session Law to an original Session Law using a text editing tool. Here's how to approach this task:
+
+                    Key Responsibilities:
                     
-                    Focus only on actual amendment content, excluding introductory statements.
-                    Use exact wording from original and amendment texts, including any errors.
-                    Choose the appropriate format based on the change:
-                    A. Small Changes (for individual words, phrases, or sentences): Use: target_text: [exact text to replace] new_text: [exact replacement text]
+                    Amendment Focus:
                     
-                    B. Large Changes (for multiple paragraphs or sections): Use: original_start_selector: [unique phrase marking start of replaced section] original_end_selector: [unique phrase marking end of replaced section] amendment_start_selector: [unique phrase marking start of new text] amendment_end_selector: [unique phrase marking end of new text]
+                    Identify and apply specific modifications stated in the amending act.
+                    Concentrate on explicit alterations to the original text.
+                    Precise Wording:
+                    
+                    Maintain exact wording from both original and amending texts.
+                    Replicate the text as written, including any existing errors.
+                    Formatting Guidelines: For minor changes (single words, phrases, or sentences): Use: target_text: [exact text to replace] new_text: [exact replacement text]
+                    
+                    For major changes (multiple sentences, paragraphs, or sections): Use: original_start_selector: [unique phrase marking start of replaced section] original_end_selector: [unique phrase marking end of replaced section] amendment_start_selector: [unique phrase marking start of new text] amendment_end_selector: [unique phrase marking end of new text]
                     
                     Important:
                     
-                    Use small changes for precise, confined modifications.
-                    Use large changes for anything spanning multiple sentences or paragraphs.
-                    All text between AND INCLUDING the selectors will be replaced/selected.
-                    Selectors should be short, unique phrases naturally occurring in the text.
-                    Never mix formats; use either small or large change format for each modification.
+                    Use the major change format with selectors for larger, multi-paragraph modifications.
+                    Apply a single format (either minor or major) for each modification.
+                    Selector Best Practices:
+                    
+                    Choose selectors verbatim from the text.
+                    Ensure selectors are unique within their respective document segment.
+                    Include necessary headers or punctuation to maintain legal structure and context.
+                    Use original_start_selector and original_end_selector from the original text only.
+                    Use amendment_start_selector and amendment_end_selector from the amendment text only.
+                    Process: Before executing edits, use <thinking> tags to briefly explain the intended change and your reasoning.
+                    Additionally, do a verification check on your chosen edits to make sure new text and target text, or original and amendment selectors are **found in their respective texts**, **non-overlapping**, and **will make the appropriate changes**.
+                    
+                    By following these guidelines, you'll effectively edit legal documents while preserving their integrity and accuracy. You will not receive a tool response or output, so please make multiple edit tool calls at once.
         """,
         "messages": [
             {
@@ -129,7 +141,7 @@ def structure_amendment(amendment_text, original_text, chapter_name):
             }
         ],
         "max_tokens": 8192,
-        "temperature": 0.27
+        "temperature": 0
     }
     
     response = bedrock.invoke_model(
@@ -140,6 +152,7 @@ def structure_amendment(amendment_text, original_text, chapter_name):
     response_body = json.loads(response['body'].read().decode('utf-8'))
     tool_calls = []
     for block in response_body['content']:
+        print(block)
         if block['type'] == 'tool_use':
             tool_calls.append(block['input'])
     
@@ -167,12 +180,16 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
         pattern = rf'(?P<content>{start_esc}.*?{end_esc})'
         match = re.search(pattern, amendment_text, flags=re.DOTALL)
         if not match:
-            print(f"Could not find amendment text between {start_marker} and {end_marker}")
-            return original_text
-        
-        # Extract the relevant portion of the amendment text
-        extracted_new_text = match.group('content').strip()
-        structured_amendment['new_text'] = extracted_new_text
+            if start_marker == end_marker:
+                structured_amendment['new_text'] = start_marker
+                print("Start and end markers were the same - doing simple replace")
+            else:
+                print(f"Could not find amendment text between {start_marker} and {end_marker}")
+                return original_text
+        else:
+            # Extract the relevant portion of the amendment text
+            extracted_new_text = match.group('content').strip()
+            structured_amendment['new_text'] = extracted_new_text
 
     # Now proceed as before with the original logic using structured_amendment:
     if 'original_start_selector' in structured_amendment and 'original_end_selector' in structured_amendment:
@@ -188,15 +205,29 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
         pattern = rf'(?P<content>{start_esc}.*?{end_esc})'
         match = re.search(pattern, original_text, flags=re.DOTALL)
         if not match:
-            print(f"Could not find original text between {start} and {end}")
-            return original_text
-            
-        extracted_original_text = match.group('content').strip()
-        structured_amendment['target_text'] = extracted_original_text
+            if start_esc == end_esc:
+                structured_amendment['target_text'] = structured_amendment['original_start_selector']
+                print("Start and end markers were the same - doing simple replace")
+            else:
+                print(f"Could not find original text between {start} and {end}")
+                return original_text
+        else:
+            extracted_original_text = match.group('content').strip()
+            structured_amendment['target_text'] = extracted_original_text
         
         # new_text = structured_amendment.get('new_text', '')
         # return re.sub(partial_pattern, new_text, original_text, flags=re.DOTALL)
     
+    # handle cases where either start slector or end selector are not there, in that case just use whichever one we do have as the target_text
+    if 'original_start_selector' in  structured_amendment and 'original_end_selector' not in structured_amendment:
+        structured_amendment['target_text'] = structured_amendment['original_start_selector']
+    
+    if 'original_end_selector' in  structured_amendment and 'original_start_selector' not in structured_amendment:
+        structured_amendment['target_text'] = structured_amendment['original_end_selector']
+
+    if 'position' not in structured_amendment and structured_amendment['amendment_type'] == 'insert':
+        structured_amendment['amendment_type'] = 'replace'
+
     # Otherwise handle small changes as before:
     amendment_type = structured_amendment['amendment_type']
     if amendment_type == 'replace':
@@ -204,7 +235,7 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
             structured_amendment['target_text'],
             '[REPLACED:]' + structured_amendment['new_text']
         )
-    elif amendment_type == 'insert':
+    elif amendment_type == 'insert':        
         idx = original_text.find(structured_amendment['target_text'])
         if idx == -1:
             print(f"Could not find target text: {structured_amendment['target_text']}")
