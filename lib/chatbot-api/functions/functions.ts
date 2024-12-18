@@ -107,7 +107,7 @@ export class LambdaFunctionStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, 'retrieve-act')), // Points to the lambda directory
       handler: 'lambda_function.lambda_handler', // Points to the 'hello' file in the lambda directory
       environment: {
-        "ACTS_BUCKET": 'glo-processed'
+        "ACTS_BUCKET": props.knowledgeBucket.bucketName
       },
       timeout: cdk.Duration.seconds(30)
     });
@@ -117,7 +117,7 @@ export class LambdaFunctionStack extends cdk.Stack {
       actions: [
         's3:*'
       ],
-      resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*"]
+      resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*",props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*"]
     }));
 
     this.retrieveActFunction = retrieveActFunction;

@@ -11,7 +11,7 @@ ddb_table_name = os.environ['DDB_TABLE_NAME']
 def get_act_text(year, chapter):
     s3 = boto3.client('s3')
     response = s3.get_object(Bucket=bucket_name, Key=f'acts/{year}/chapter-{chapter}.txt')
-    body = response['Body'].read().decode('utf-8')
+    body = response['Body'].read().decode('utf-8', 'ignore')
     return body
 
 def lambda_handler(event, context):
@@ -54,7 +54,7 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
     sk = f"{amending_year}-{amending_chapter}"
 
     # Attempt to retrieve from DynamoDB first
-    existing_record = table.get_item(Key={'PK': pk, 'SK': sk})
+    existing_record = table.get_item(Key={'Amended': pk, 'AmendedBy': sk})
     if 'Item' in existing_record:
         # If we already have the structured amendments, return them directly
         print("Found existing structured amendments in DynamoDB. Skipping LLM call.")
@@ -181,8 +181,8 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
     if tool_calls:
         table.put_item(
             Item={
-                'PK': pk,
-                'SK': sk,
+                'Amended': pk,
+                'AmendedBy': sk,
                 'tool_calls': tool_calls
             }
         )
