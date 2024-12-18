@@ -6,6 +6,7 @@ import os
 bedrock = boto3.client('bedrock-runtime')
 modelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
 bucket_name = os.environ['BUCKET']
+ddb_table_name = os.environ['DDB_TABLE_NAME']
 
 def get_act_text(year, chapter):
     s3 = boto3.client('s3')
@@ -19,27 +20,47 @@ def lambda_handler(event, context):
     amended_chapter = data['chapter']
     amending_year = data['amend_year']
     amending_chapter = data['amend_chapter']
-    original = get_act_text(amended_year,amended_chapter)
+    original = get_act_text(amended_year, amended_chapter)
     amendment = get_act_text(amending_year, amending_chapter)
 
     return {
         "statusCode" : 200,
-        "body" : json.dumps(process_amendments(original,f"Chapter {amended_chapter} of the Acts of {amended_year}", [amendment]))
+        "body" : json.dumps(process_amendments(original, f"Chapter {amended_chapter} of the Acts of {amended_year}", [amendment], amended_year, amended_chapter, amending_year, amending_chapter))
     }
 
-# the function is designed to be able to accept multiple amendments, but we will only give it one
-# if you were to pass in a full list of amendments, this could take as long as 2-3 minutes to finish
-# hence, it will be used to insert amendments one-by-one
-def process_amendments(original_text, original_chapter, amendments):
+def process_amendments(original_text, original_chapter, amendments, amended_year, amended_chapter, amending_year, amending_chapter):
     current_text = original_text
     for amendment in amendments:
-        structured = structure_amendment(amendment, current_text, original_chapter)
+        structured = structure_amendment(
+            amendment_text=amendment, 
+            original_text=current_text, 
+            chapter_name=original_chapter,
+            amended_year=amended_year, 
+            amended_chapter=amended_chapter, 
+            amending_year=amending_year, 
+            amending_chapter=amending_chapter
+        )
         if structured:
             for call in structured:
                 current_text = apply_structured_amendment(current_text, call, amendment)
     return current_text
 
-def structure_amendment(amendment_text, original_text, chapter_name):
+def structure_amendment(amendment_text, original_text, chapter_name, amended_year, amended_chapter, amending_year, amending_chapter):
+    # First, check DynamoDB if the structured amendments are already stored
+    ddb = boto3.resource('dynamodb')
+    table = ddb.Table(ddb_table_name)
+
+    pk = f"INSERTION-{amended_year}-{amended_chapter}"
+    sk = f"{amending_year}-{amending_chapter}"
+
+    # Attempt to retrieve from DynamoDB first
+    existing_record = table.get_item(Key={'PK': pk, 'SK': sk})
+    if 'Item' in existing_record:
+        # If we already have the structured amendments, return them directly
+        print("Found existing structured amendments in DynamoDB. Skipping LLM call.")
+        return existing_record['Item']['tool_calls']
+
+    # If not found in DDB, call the LLM
     body = {
         "anthropic_version": "bedrock-2023-05-31",
         "system": """
@@ -156,27 +177,29 @@ def structure_amendment(amendment_text, original_text, chapter_name):
         if block['type'] == 'tool_use':
             tool_calls.append(block['input'])
     
+    # If we got tool_calls from LLM, store them in DynamoDB for future use
     if tool_calls:
+        table.put_item(
+            Item={
+                'PK': pk,
+                'SK': sk,
+                'tool_calls': tool_calls
+            }
+        )
         return tool_calls
+    
     return None
 
 def apply_structured_amendment(original_text, structured_amendment, amendment_text=None):
-    """
-    original_text: The original legal text.
-    structured_amendment: A dict containing details like amendment_type, start/end selectors, etc.
-    amendment_text: The full text of the amendment from which we may need to extract a subset.
-    """
     print(structured_amendment)
     # Check if we need to extract the new_text from a subset of the amendment_text
     if amendment_text and 'amendment_start_selector' in structured_amendment and 'amendment_end_selector' in structured_amendment:
         start_marker = structured_amendment['amendment_start_selector']
         end_marker = structured_amendment['amendment_end_selector']
         
-        # Escape special regex chars if necessary
         start_esc = re.escape(start_marker)
         end_esc = re.escape(end_marker)
         
-        # Use a regex to find the portion of amendment_text between these selectors
         pattern = rf'(?P<content>{start_esc}.*?{end_esc})'
         match = re.search(pattern, amendment_text, flags=re.DOTALL)
         if not match:
@@ -187,21 +210,17 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
                 print(f"Could not find amendment text between {start_marker} and {end_marker}")
                 return original_text
         else:
-            # Extract the relevant portion of the amendment text
             extracted_new_text = match.group('content').strip()
             structured_amendment['new_text'] = extracted_new_text
 
-    # Now proceed as before with the original logic using structured_amendment:
+    # Handle major changes (original_start_selector and original_end_selector)
     if 'original_start_selector' in structured_amendment and 'original_end_selector' in structured_amendment:
-        # Handle partial section replacement in the original text
         start = structured_amendment['original_start_selector']
         end = structured_amendment['original_end_selector']
         
-        # Escape special regex chars if necessary
         start_esc = re.escape(start)
         end_esc = re.escape(end)
         
-        # partial_pattern = rf'{start_esc}.*?{end_esc}'
         pattern = rf'(?P<content>{start_esc}.*?{end_esc})'
         match = re.search(pattern, original_text, flags=re.DOTALL)
         if not match:
@@ -214,11 +233,8 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
         else:
             extracted_original_text = match.group('content').strip()
             structured_amendment['target_text'] = extracted_original_text
-        
-        # new_text = structured_amendment.get('new_text', '')
-        # return re.sub(partial_pattern, new_text, original_text, flags=re.DOTALL)
-    
-    # handle cases where either start slector or end selector are not there, in that case just use whichever one we do have as the target_text
+
+    # handle cases where only one selector is present
     if 'original_start_selector' in  structured_amendment and 'original_end_selector' not in structured_amendment:
         structured_amendment['target_text'] = structured_amendment['original_start_selector']
     
@@ -228,7 +244,7 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
     if 'position' not in structured_amendment and structured_amendment['amendment_type'] == 'insert':
         structured_amendment['amendment_type'] = 'replace'
 
-    # Otherwise handle small changes as before:
+    # Apply the changes according to the amendment_type
     amendment_type = structured_amendment['amendment_type']
     if amendment_type == 'replace':
         return original_text.replace(
@@ -247,4 +263,3 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
         return original_text.replace(structured_amendment['target_text'], '[REMOVED]')
 
     return original_text
-

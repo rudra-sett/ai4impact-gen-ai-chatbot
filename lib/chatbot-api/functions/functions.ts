@@ -45,7 +45,8 @@ export class LambdaFunctionStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, 'insert-amendment')), 
       handler: 'lambda_function.lambda_handler', 
       environment: {
-        "BUCKET": props.knowledgeBucket.bucketName
+        "BUCKET": props.knowledgeBucket.bucketName,
+        "DDB_TABLE_NAME": props.amendmentTable.tableName
       },
       timeout: cdk.Duration.seconds(30)
     });
@@ -64,6 +65,19 @@ export class LambdaFunctionStack extends cdk.Stack {
         's3:*'
       ],
       resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*",props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*" ]
+    }));
+
+    insertAmendmentFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'dynamodb:GetItem',
+        'dynamodb:PutItem',
+        'dynamodb:UpdateItem',
+        'dynamodb:DeleteItem',
+        'dynamodb:Query',
+        'dynamodb:Scan'
+      ],
+      resources: [props.amendmentTable.tableArn, props.amendmentTable.tableArn + "/index/*"]
     }));
 
     this.insertAmendmentFunction = insertAmendmentFunction;
