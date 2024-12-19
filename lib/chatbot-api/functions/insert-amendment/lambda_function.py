@@ -50,25 +50,67 @@ def process_amendments(original_text, original_chapter, amendments, amended_year
                 current_text = apply_structured_amendment(current_text, call, amendment)
     return current_text
 
-def structure_amendment(amendment_text, original_text, chapter_name, amended_year, amended_chapter, amending_year, amending_chapter):
-    # First, check DynamoDB if the structured amendments are already stored
+
+def structure_amendment(amendment_text, original_text, chapter_name, amended_year, amended_chapter, amending_year, amending_chapter, max_attempts=3):
+    # Check DynamoDB first
     ddb = boto3.resource('dynamodb')
     table = ddb.Table(ddb_table_name)
 
     pk = f"INSERTION-{amended_year}-{amended_chapter}"
     sk = f"{amending_year}-{amending_chapter}"
 
-    # Attempt to retrieve from DynamoDB first
     existing_record = table.get_item(Key={'Amended': pk, 'AmendedBy': sk})
     if 'Item' in existing_record:
-        # If we already have the structured amendments, return them directly
         print("Found existing structured amendments in DynamoDB. Skipping LLM call.")
         return existing_record['Item']['tool_calls']
 
-    # If not found in DDB, call the LLM
-    body = {
-        "anthropic_version": "bedrock-2023-05-31",
-        "system": """
+    # If not found in DDB, call the LLM in a loop until successful or max attempts reached
+    response_messages = []
+    successful_edits = []
+    stop = False
+    while not stop:
+        tool_call_blocks, content = call_llm_for_tool_calls(original_text, chapter_name, amendment_text, response_messages)
+        
+        if not tool_call_blocks or len(tool_call_blocks) == 0:
+            # No tool calls returned, means we're done!
+            stop = True
+            continue
+        
+        response_messages.append({
+            "role" : "assistant",
+            "content" : content
+        })
+
+        # Validate tool calls by attempting a dry run
+        success, responses = validate_tool_calls(original_text, tool_call_blocks, amendment_text)
+
+        if len(success) > 0:
+            # store the sucessful edits
+            successful_edits += success
+        
+        response_messages.append({
+            "role" : "user",
+            "content" : responses
+            })
+
+    if len(successful_edits) > 0:
+        # Store the successful edits in DDB
+        table.put_item(
+                Item={
+                    'Amended': pk,
+                    'AmendedBy': sk,
+                    'tool_calls': successful_edits
+                }
+            )
+        print("got successful edits!")
+        return successful_edits
+    # If we reach here, we failed to get valid tool calls after all attempts
+    print("Could not produce valid tool calls after multiple attempts.")
+    return None
+
+
+def call_llm_for_tool_calls(original_text, chapter_name, amendment_text, feedback_messages):
+    system_prompt = """
                     You are a skilled, precise legal document editor. Your task is to accurately apply changes from an amending Session Law to an original Session Law using a text editing tool. Here's how to approach this task:
 
                     Key Responsibilities:
@@ -97,29 +139,39 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
                     Use original_start_selector and original_end_selector from the original text only.
                     Use amendment_start_selector and amendment_end_selector from the amendment text only.
                     Process: Before executing edits, use <thinking> tags to briefly explain the intended change and your reasoning.
-                    Additionally, do a verification check on your chosen edits to make sure new text and target text, or original and amendment selectors are **found in their respective texts**, **non-overlapping**, and **will make the appropriate changes**.
+                    Your thinking process should include a <verification_check> on your chosen edits to confirm new text and target text, or original and amendment selectors are **found in their respective texts**, **non-overlapping**, and **will make the appropriate changes**.
                     
-                    By following these guidelines, you'll effectively edit legal documents while preserving their integrity and accuracy. You will not receive a tool response or output, so please make multiple edit tool calls at once.
-        """,
-        "messages": [
+                    You will be comprehensive with this task, making as many edits as needed to capture all amendments.
+                    
+                    By following these guidelines, you'll effectively edit legal documents while preserving their integrity and accuracy. 
+
+                    """
+
+    user_message = f"""
+    <original_text name={chapter_name}>
+    {original_text}
+    </original_text>
+
+    <amending_act>
+    {amendment_text}
+    </amending_act>
+    """
+    messages = [
             {
                 "role": "user",
                 "content": [
                     {
                         "type": "text",
-                        "text": f"""
-                                    <original_text name={chapter_name}>
-                                    {original_text}
-                                    </original_text>
-                                    
-                                    <amending_act>
-                                    {amendment_text}
-                                    </amending_act>
-                                """
+                        "text": user_message
                     }
                 ]
-            }
-        ],
+            },
+        ] + feedback_messages
+    # print(feedback_messages)
+    body = {
+        "anthropic_version": "bedrock-2023-05-31",
+        "system": system_prompt,
+        "messages": messages,
         "tools": [
             {
                 "name": "text_editor",
@@ -167,37 +219,71 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
             }
         ],
         "max_tokens": 8192,
-        "temperature": 0
+        "temperature": 0.2
     }
-    
+
     response = bedrock.invoke_model(
         modelId=modelId,
         body=json.dumps(body)
     )
-    
     response_body = json.loads(response['body'].read().decode('utf-8'))
-    tool_calls = []
-    for block in response_body['content']:
+    content = response_body['content']
+    tool_call_blocks = []
+    for block in content:
         print(block)
         if block['type'] == 'tool_use':
-            tool_calls.append(block['input'])
-    
-    # If we got tool_calls from LLM, store them in DynamoDB for future use
-    if tool_calls:
-        table.put_item(
-            Item={
-                'Amended': pk,
-                'AmendedBy': sk,
-                'tool_calls': tool_calls
-            }
-        )
-        return tool_calls
-    
-    return None
+            tool_call_blocks.append(block)
 
-def apply_structured_amendment(original_text, structured_amendment, amendment_text=None):
-    print(structured_amendment)
-    # Check if we need to extract the new_text from a subset of the amendment_text
+    return tool_call_blocks, content if tool_call_blocks else None
+
+
+def validate_tool_calls(original_text, tool_call_blocks, amendment_text):
+    """Attempt to apply each tool call in a dry run to see if it succeeds.
+       Return (success, errors).
+    """
+    temp_text = original_text
+    successful_calls = []
+    response_messages = []
+    for tool_call in tool_call_blocks:
+        call = tool_call['input']
+        try:
+            temp_text_new = apply_structured_amendment(temp_text, call, amendment_text, dry_run=True)
+            if temp_text_new == temp_text:
+                # Could indicate a failure if we expected a change
+                # but let's not assume it's always an error; sometimes no change needed.
+                pass
+            temp_text = temp_text_new
+            response_messages.append({
+                "type" : "tool_result",
+                "tool_use_id" : tool_call['id'],
+                "content" : "Success!"
+            })
+            successful_calls.append(call)
+            print("success")
+        except ValueError as e:
+            # If we raise a ValueError for known errors in apply, we catch here
+            response_messages.append({
+                "type" : "tool_result",
+                "tool_use_id" : tool_call['id'],
+                "content" : str(e)
+            })  
+            print("failed")
+            # return False, response_messages
+        except Exception as e:
+            # Any unexpected error
+            response_messages.append({
+                "type" : "tool_result",
+                "tool_use_id" : tool_call['id'],
+                "content" : str(e)
+            }) 
+            print("failed for some other reason")
+            # return False, response_messages
+    return successful_calls, response_messages
+
+
+def apply_structured_amendment(original_text, structured_amendment, amendment_text=None, dry_run=False):
+    # print(structured_amendment)
+    # Extract new_text from amendment_text if needed
     if amendment_text and 'amendment_start_selector' in structured_amendment and 'amendment_end_selector' in structured_amendment:
         start_marker = structured_amendment['amendment_start_selector']
         end_marker = structured_amendment['amendment_end_selector']
@@ -212,7 +298,10 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
                 structured_amendment['new_text'] = start_marker
                 print("Start and end markers were the same - doing simple replace")
             else:
-                print(f"Could not find amendment text between {start_marker} and {end_marker}")
+                error_msg = f"Could not find amendment text between {start_marker} and {end_marker}"
+                print(error_msg)
+                if dry_run:
+                    raise ValueError(error_msg)
                 return original_text
         else:
             extracted_new_text = match.group('content').strip()
@@ -233,7 +322,10 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
                 structured_amendment['target_text'] = structured_amendment['original_start_selector']
                 print("Start and end markers were the same - doing simple replace")
             else:
-                print(f"Could not find original text between {start} and {end}")
+                error_msg = f"Could not find original text between {start} and {end}"
+                print(error_msg)
+                if dry_run:
+                    raise ValueError(error_msg)
                 return original_text
         else:
             extracted_original_text = match.group('content').strip()
@@ -249,36 +341,56 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
     if 'position' not in structured_amendment and structured_amendment['amendment_type'] == 'insert':
         structured_amendment['amendment_type'] = 'replace'
 
-    # Apply the changes according to the amendment_type
+    # Apply the changes
     amendment_type = structured_amendment['amendment_type']
     max_subs = 10
     max_errs = 10
-    # Build a fuzzy pattern for the target text.
-    # This pattern allows up to `max_substitutions` substitutions.
-    target_text = structured_amendment['target_text']
+    target_text = structured_amendment.get('target_text', '')
+    new_text = structured_amendment.get('new_text', '')
+
+    if not target_text and amendment_type != 'insert':
+        # If there's no target text for a replace/strike, something's off
+        # This might be a scenario to raise an error
+        error_msg = "No target_text provided for a non-insert operation."
+        print(error_msg)
+        if dry_run:
+            raise ValueError(error_msg)
+        return original_text
+
     fuzzy_pattern = f"({re.escape(target_text)}){{s<={max_subs},e<={max_errs}}}"
-    
+
     if amendment_type == 'replace':
-        # Fuzzy replace using regex.sub()
-        return re.sub(fuzzy_pattern, structured_amendment['new_text'], original_text)
+        replaced_text = re.sub(fuzzy_pattern, new_text, original_text)
+        if replaced_text == original_text:
+            error_msg = f"Could not (fuzzily) find target text for replace: {target_text}"
+            print(error_msg)
+            if dry_run:
+                raise ValueError(error_msg)
+        return replaced_text
     
     elif amendment_type == 'insert':
-        # We need to find the fuzzy match first
         match = re.search(fuzzy_pattern, original_text)
         if not match:
-            print(f"Could not (fuzzily) find target text: {structured_amendment['target_text']}")
+            error_msg = f"Could not (fuzzily) find target text for insert: {target_text}"
+            print(error_msg)
+            if dry_run:
+                raise ValueError(error_msg)
             return original_text
         
-        # Determine insertion position
-        if structured_amendment['position'] == 'after':
-            insert_idx = match.end()  # after the matched text
+        if structured_amendment.get('position') == 'after':
+            insert_idx = match.end()
         else:
-            insert_idx = match.start()  # before the matched text
-        
-        return original_text[:insert_idx] + structured_amendment['new_text'] + original_text[insert_idx:]
+            insert_idx = match.start()
+
+        return original_text[:insert_idx] + new_text + original_text[insert_idx:]
     
     elif amendment_type == 'strike':
-        # Fuzzy remove (strike) by substituting with an empty string
-        return re.sub(fuzzy_pattern, '', original_text)
+        struck_text = re.sub(fuzzy_pattern, '', original_text)
+        if struck_text == original_text:
+            error_msg = f"Could not (fuzzily) find target text for strike: {target_text}"
+            print(error_msg)
+            if dry_run:
+                raise ValueError(error_msg)
+        return struck_text
     
     return original_text
