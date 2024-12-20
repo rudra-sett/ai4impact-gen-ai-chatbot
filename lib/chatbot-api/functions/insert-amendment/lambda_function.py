@@ -30,7 +30,7 @@ def lambda_handler(event, context):
 
     return {
         "statusCode" : 200,
-        "body" : json.dumps(process_amendments(original, f"Chapter {amended_chapter} of the Acts of {amended_year}", [amendment], amended_year, amended_chapter, amending_year, amending_chapter))
+        "body" : json.dumps(process_amendments(original.replace("\r\n"," "), f"Chapter {amended_chapter} of the Acts of {amended_year}", [amendment.replace("\r\n"," ")], amended_year, amended_chapter, amending_year, amending_chapter))
     }
 
 def process_amendments(original_text, original_chapter, amendments, amended_year, amended_chapter, amending_year, amending_chapter):
@@ -67,13 +67,29 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
     # If not found in DDB, call the LLM in a loop until successful or max attempts reached
     response_messages = []
     successful_edits = []
+    current_text = original_text
+    # print(current_text)
     stop = False
     while not stop:
-        tool_call_blocks, content = call_llm_for_tool_calls(original_text, chapter_name, amendment_text, response_messages)
+        tool_call_blocks, content = call_llm_for_tool_calls(current_text, chapter_name, amendment_text, response_messages)
         
-        if not tool_call_blocks or len(tool_call_blocks) == 0:
-            # No tool calls returned, means we're done!
-            stop = True
+        if not tool_call_blocks or len(tool_call_blocks) == 0:            
+            if len(response_messages) == 0:
+                # No messages returned, this means the model never did anything in the first place. 
+                # Let's try again to make sure
+                # print(content)
+                response_messages.append({
+                    "role" : "assistant",
+                    "content" : content
+                })
+                response_messages.append({
+                    "role" : "user",
+                    "content" : "Thanks! If there are edits that need to be made, please use the tool now."
+                })
+                stop = False
+            else:
+                # No tool calls returned, means we're done!
+                stop = True                
             continue
         
         response_messages.append({
@@ -82,11 +98,12 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
         })
 
         # Validate tool calls by attempting a dry run
-        success, responses = validate_tool_calls(original_text, tool_call_blocks, amendment_text)
+        success, responses, amended_text = validate_tool_calls(current_text, tool_call_blocks, amendment_text)
 
         if len(success) > 0:
             # store the sucessful edits
             successful_edits += success
+            current_text = amended_text
         
         response_messages.append({
             "role" : "user",
@@ -127,6 +144,7 @@ def call_llm_for_tool_calls(original_text, chapter_name, amendment_text, feedbac
                     
                     For major changes (multiple sentences, paragraphs, or sections): Use: original_start_selector: [unique phrase marking start of replaced section] original_end_selector: [unique phrase marking end of replaced section] amendment_start_selector: [unique phrase marking start of new text] amendment_end_selector: [unique phrase marking end of new text]
                     
+                    If you are having issues with the editor telling you it cannot find text, then it is best to try the selector method with smaller phrases. 
                     Important:
                     
                     Use the major change format with selectors for larger, multi-paragraph modifications.
@@ -234,7 +252,7 @@ def call_llm_for_tool_calls(original_text, chapter_name, amendment_text, feedbac
         if block['type'] == 'tool_use':
             tool_call_blocks.append(block)
 
-    return tool_call_blocks, content if tool_call_blocks else None
+    return tool_call_blocks, content #if tool_call_blocks else None
 
 
 def validate_tool_calls(original_text, tool_call_blocks, amendment_text):
@@ -278,20 +296,27 @@ def validate_tool_calls(original_text, tool_call_blocks, amendment_text):
             }) 
             print("failed for some other reason")
             # return False, response_messages
-    return successful_calls, response_messages
+    return successful_calls, response_messages, temp_text
 
 
 def apply_structured_amendment(original_text, structured_amendment, amendment_text=None, dry_run=False):
-    # print(structured_amendment)
+    print(structured_amendment)
     # Extract new_text from amendment_text if needed
+    if 'target_text' in structured_amendment and 'original_start_selector' not in structured_amendment:
+        if len(structured_amendment['target_text']) > 1500:
+            raise ValueError("Excessively long direct replacement, please use selectors!")
+    if 'new_text' in structured_amendment and 'amendment_start_selector' not in structured_amendment:
+        if len(structured_amendment['new_text']) > 1500:
+            raise ValueError("Excessively long direct replacement, please use selectors!")
+
     if amendment_text and 'amendment_start_selector' in structured_amendment and 'amendment_end_selector' in structured_amendment:
         start_marker = structured_amendment['amendment_start_selector']
         end_marker = structured_amendment['amendment_end_selector']
         
         start_esc = re.escape(start_marker)
-        end_esc = re.escape(end_marker)
+        end_esc = re.escape(end_marker)        
         
-        pattern = rf'(?P<content>{start_esc}.*?{end_esc}){{s<=10,e<=10}}'
+        pattern = rf'(?P<content>{start_esc}.*?{end_esc}){{s<=0,e<=0}}'
         match = re.search(pattern, amendment_text, flags=re.DOTALL)
         if not match:
             if start_marker == end_marker:
@@ -314,8 +339,11 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
         
         start_esc = re.escape(start)
         end_esc = re.escape(end)
+
+        if "SECTION" in end and structured_amendment.get('amendment_type','') == 'replace':
+            raise ValueError("Please do not use section headers as the end of an original text selection, because it will get overwritten. Use the last words of the amended section instead.")
         
-        pattern = rf'(?P<content>{start_esc}.*?{end_esc}){{s<=10,e<=10}}'
+        pattern = rf'(?P<content>{start_esc}.*?{end_esc}){{s<=0,e<=0}}'
         match = re.search(pattern, original_text, flags=re.DOTALL)
         if not match:
             if start_esc == end_esc:
@@ -343,10 +371,12 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
 
     # Apply the changes
     amendment_type = structured_amendment['amendment_type']
-    max_subs = 10
-    max_errs = 10
+    
     target_text = structured_amendment.get('target_text', '')
     new_text = structured_amendment.get('new_text', '')
+
+    max_subs = 0 #max(3,len(target_text) // 15)
+    max_errs = 0 #max(3,len(target_text) // 15)
 
     if not target_text and amendment_type != 'insert':
         # If there's no target text for a replace/strike, something's off
