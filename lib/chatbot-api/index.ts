@@ -12,7 +12,7 @@ import { S3BucketStack } from "./buckets/buckets"
 
 import { WebSocketLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
-import { WebSocketLambdaAuthorizer, HttpUserPoolAuthorizer, HttpJwtAuthorizer  } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
+import { WebSocketLambdaAuthorizer, HttpUserPoolAuthorizer, HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { aws_apigatewayv2 as apigwv2 } from "aws-cdk-lib";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
@@ -22,7 +22,7 @@ import { KnowledgeBaseStack } from "./knowledge-base/knowledge-base"
 // import { NagSuppressions } from "cdk-nag";
 
 export interface ChatBotApiProps {
-  readonly authentication: AuthorizationStack; 
+  readonly authentication: AuthorizationStack;
 }
 
 export class ChatBotApi extends Construct {
@@ -33,7 +33,7 @@ export class ChatBotApi extends Construct {
   // public readonly userFeedbackBucket: s3.Bucket;
   // public readonly wsAPI: apigwv2.WebSocketApi;
   public readonly amendmentFunction: lambda.Function;
-  
+
 
   constructor(scope: Construct, id: string, props: ChatBotApiProps) {
     super(scope, id);
@@ -42,10 +42,12 @@ export class ChatBotApi extends Construct {
     const buckets = new S3BucketStack(this, "BucketStack");
 
     this.filesBucket = buckets.knowledgeBucket;
-    
-    const openSearch = new OpenSearchStack(this,"OpenSearchStack",{})
-    const knowledgeBase = new KnowledgeBaseStack(this,"KnowledgeBaseStack",{ openSearch : openSearch,
-      s3bucket : buckets.knowledgeBucket})
+
+    const openSearch = new OpenSearchStack(this, "OpenSearchStack", {})
+    const knowledgeBase = new KnowledgeBaseStack(this, "KnowledgeBaseStack", {
+      openSearch: openSearch,
+      s3bucket: buckets.knowledgeBucket
+    })
 
     const restBackend = new RestBackendAPI(this, "RestBackend", {})
     this.httpAPI = restBackend;
@@ -55,18 +57,20 @@ export class ChatBotApi extends Construct {
     const lambdaFunctions = new LambdaFunctionStack(this, "LambdaFunctions",
       {
         wsApiEndpoint: websocketBackend.wsAPIStage.url,
-        sessionTable: tables.historyTable,        
+        sessionTable: tables.historyTable,
         feedbackTable: tables.feedbackTable,
         amendmentTable: tables.amendmentTable,
         feedbackBucket: buckets.feedbackBucket,
         knowledgeBucket: buckets.knowledgeBucket,
         knowledgeBase: knowledgeBase.knowledgeBase,
-        knowledgeBaseSource : knowledgeBase.dataSource,
-        openSearch : openSearch.openSearchCollection
+        knowledgeBaseSource: knowledgeBase.dataSource,
+        openSearch: openSearch.openSearchCollection
 
       })
 
-    const wsAuthorizer = new WebSocketLambdaAuthorizer('WebSocketAuthorizer', props.authentication.lambdaAuthorizer, {identitySource: ['route.request.querystring.Authorization']});
+    this.amendmentFunction = lambdaFunctions.amendmentsFunction;
+
+    const wsAuthorizer = new WebSocketLambdaAuthorizer('WebSocketAuthorizer', props.authentication.lambdaAuthorizer, { identitySource: ['route.request.querystring.Authorization'] });
 
     websocketBackend.wsAPI.addRoute('getChatbotResponse', {
       integration: new WebSocketLambdaIntegration('chatbotResponseIntegration', lambdaFunctions.chatFunction),
@@ -83,12 +87,12 @@ export class ChatBotApi extends Construct {
     websocketBackend.wsAPI.addRoute('$disconnect', {
       integration: new WebSocketLambdaIntegration('chatbotDisconnectionIntegration', lambdaFunctions.chatFunction),
       // authorizer: wsAuthorizer
-    });    
+    });
 
     websocketBackend.wsAPI.grantManageConnections(lambdaFunctions.chatFunction);
 
-    
-    const httpAuthorizer = new HttpJwtAuthorizer('HTTPAuthorizer', props.authentication.userPool.userPoolProviderUrl,{
+
+    const httpAuthorizer = new HttpJwtAuthorizer('HTTPAuthorizer', props.authentication.userPool.userPoolProviderUrl, {
       jwtAudience: [props.authentication.userPoolClient.userPoolClientId],
     })
 
@@ -137,7 +141,7 @@ export class ChatBotApi extends Construct {
     //   "mvp_user_session_handler_api_gateway_endpoint", restBackend.restAPI.apiEndpoint + "/user-session")
     lambdaFunctions.chatFunction.addEnvironment(
       "SESSION_HANDLER", lambdaFunctions.sessionFunction.functionName)
-    
+
 
     const feedbackAPIIntegration = new HttpLambdaIntegration('FeedbackAPIIntegration', lambdaFunctions.feedbackFunction);
     restBackend.restAPI.addRoutes({
@@ -194,7 +198,7 @@ export class ChatBotApi extends Construct {
       integration: kbSyncAPIIntegration,
       authorizer: httpAuthorizer,
     })
-    
+
     const kbLastSyncAPIIntegration = new HttpLambdaIntegration('KBLastSyncAPIIntegration', lambdaFunctions.syncKBFunction);
     restBackend.restAPI.addRoutes({
       path: "/kb-sync/get-last-sync",
@@ -203,7 +207,7 @@ export class ChatBotApi extends Construct {
       authorizer: httpAuthorizer,
     })
 
-      // this.wsAPI = websocketBackend.wsAPI;
+    // this.wsAPI = websocketBackend.wsAPI;
 
 
 
