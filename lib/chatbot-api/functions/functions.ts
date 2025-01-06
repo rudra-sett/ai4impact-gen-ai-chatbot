@@ -56,7 +56,7 @@ export class LambdaFunctionStack extends cdk.Stack {
         "BUCKET": props.knowledgeBucket.bucketName,
         "DDB_TABLE_NAME": props.amendmentTable.tableName
       },
-      timeout: cdk.Duration.seconds(30)
+      timeout: cdk.Duration.seconds(900)
     });
 
     insertAmendmentFunction.addToRolePolicy(new iam.PolicyStatement({

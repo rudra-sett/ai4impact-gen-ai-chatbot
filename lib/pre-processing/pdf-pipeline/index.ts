@@ -70,7 +70,8 @@ export class PDFPipelineStack extends Construct {
       code: lambda.Code.fromAsset(path.join(__dirname, 'splitter')),
       handler: 'lambda_function.lambda_handler',
       environment: {
-        "BUCKET": props.outputBucket.bucketName
+        "BUCKET": props.outputBucket.bucketName,
+        "PREVENT_OVERWRITES": "true",
       },
       memorySize: 8192,
       timeout: cdk.Duration.seconds(900)
@@ -103,10 +104,8 @@ export class PDFPipelineStack extends Construct {
 
     splitterFunction.addEventSource(new SqsEventSource(props.pdfQueue, {
       batchSize: 1,
-      maxConcurrency: 10
+      maxConcurrency: 2
     }));
-
-    // TODO: incorporate cleaning function if we can't find a better way to split up the documents    
 
     const downloadFunction = new lambda.Function(this, 'DownloadFunction', {
       runtime: lambda.Runtime.PYTHON_3_12,

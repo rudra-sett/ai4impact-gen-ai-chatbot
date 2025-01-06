@@ -14,23 +14,42 @@ def get_act_text(year, chapter):
     body = response['Body'].read().decode('utf-8', 'ignore')
     return body
 
+def get_act_text_from_key(key):
+    s3 = boto3.client('s3')
+    response = s3.get_object(Bucket=bucket_name, Key=key)
+    body = response['Body'].read().decode('utf-8', 'ignore')
+    return body
+
 def lambda_handler(event, context):
     data = json.loads(event['body'])
     amended_year = data['year']
     amended_chapter = data['chapter']
     amending_year = data['amend_year']
     amending_chapter = data['amend_chapter']
-    
-    # original = get_act_text(amended_year, amended_chapter)
+    use_key = 'use_key' in data and data['use_key']
+        
     if 'client_text' in data:
+        # sometimes we may pass the original text as 'client_text'
         original = data['client_text']
+        if use_key:
+            # and sometimes we may pass a key as 'client_text'            
+            key = data['client_text']
+            original = get_act_text_from_key(key)
     else:
         original = get_act_text(amended_year, amended_chapter)
-    amendment = get_act_text(amending_year, amending_chapter)
+    amendment = get_act_text(amending_year, amending_chapter)    
+
+    new_text = process_amendments(original.replace("\r\n"," "), f"Chapter {amended_chapter} of the Acts of {amended_year}", [amendment.replace("\r\n"," ")], amended_year, amended_chapter, amending_year, amending_chapter)
+
+    if use_key:
+        new_key = f"versioned/acts/{amended_year}/chapter-{amended_chapter}-version-{amending_year}-{amending_chapter}.txt"
+        s3 = boto3.client('s3')
+        s3.put_object(Bucket=bucket_name, Key=new_key, Body=new_text)
+        new_text = new_key
 
     return {
         "statusCode" : 200,
-        "body" : json.dumps(process_amendments(original.replace("\r\n"," "), f"Chapter {amended_chapter} of the Acts of {amended_year}", [amendment.replace("\r\n"," ")], amended_year, amended_chapter, amending_year, amending_chapter))
+        "body" : json.dumps(new_text)
     }
 
 def process_amendments(original_text, original_chapter, amendments, amended_year, amended_chapter, amending_year, amending_chapter):
@@ -63,6 +82,8 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
     if 'Item' in existing_record:
         print("Found existing structured amendments in DynamoDB. Skipping LLM call.")
         return existing_record['Item']['tool_calls']
+    
+    # TODO: add an overwrite mode
 
     # If not found in DDB, call the LLM in a loop until successful or max attempts reached
     response_messages = []
@@ -157,7 +178,7 @@ def call_llm_for_tool_calls(original_text, chapter_name, amendment_text, feedbac
                     Use original_start_selector and original_end_selector from the original text only.
                     Use amendment_start_selector and amendment_end_selector from the amendment text only.
                     Process: Before executing edits, use <thinking> tags to briefly explain the intended change and your reasoning.
-                    Your thinking process should include a <verification_check> on your chosen edits to confirm new text and target text, or original and amendment selectors are **found in their respective texts**, **non-overlapping**, and **will make the appropriate changes**.
+                    Your thinking process should include a <verification_check> on your chosen edits to confirm new text and target text, or original and amendment selectors are **found in their respective texts**, **non-overlapping**, and **will make the appropriate changes**. This includes non-standard punctuation or errors.
                     
                     You will be comprehensive with this task, making as many edits as needed to capture all amendments.
                     
@@ -316,7 +337,7 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
         start_esc = re.escape(start_marker)
         end_esc = re.escape(end_marker)        
         
-        pattern = rf'(?P<content>{start_esc}.*?{end_esc}){{s<=0,e<=0}}'
+        pattern = rf'(?P<content>{start_esc}.*?{end_esc}){{s<=0,e<=1}}'
         match = re.search(pattern, amendment_text, flags=re.DOTALL)
         if not match:
             if start_marker == end_marker:
@@ -376,7 +397,7 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
     new_text = structured_amendment.get('new_text', '')
 
     max_subs = 0 #max(3,len(target_text) // 15)
-    max_errs = 0 #max(3,len(target_text) // 15)
+    max_errs = 1 #max(3,len(target_text) // 15)
 
     if not target_text and amendment_type != 'insert':
         # If there's no target text for a replace/strike, something's off

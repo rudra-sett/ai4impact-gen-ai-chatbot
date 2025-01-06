@@ -7,6 +7,7 @@ s3 = boto3.client('s3')
 client = boto3.client('textract')
 
 bucket_name = os.environ['BUCKET']
+prevent_overwrites = os.environ['PREVENT_OVERWRITES']
 
 # Function to extract the year from the filename
 def extract_year(filename):
@@ -24,7 +25,9 @@ def extract_chapter(text):
 
 # Function to determine if a block is an act or resolve
 def is_resolve(text):
-    resolve_pattern = r"(Chap(?:ter)?\.?\s*\d+\.?\s*RESOLVE)"
+    resolve_pattern = r"(Chap(?:ter)?\.?\s*[\s\S]{0,60}\s*RESOLVE|\s*RESOLVE\s*[\s\S]{0,60}\s*(Chap(?:ter)?\.?))"
+    # detect chapter and resolve text in any order:
+
     # Use re.search with the case-insensitive flag to check if "RESOLVE" appears in the relevant context
     return bool(re.search(resolve_pattern, text, flags=re.IGNORECASE))
 
@@ -165,7 +168,20 @@ def process_acts_resolves(acts, filename, bucket_name):
                 key = f"acts/{year}/chapter-{chapter_number}.txt"
             
             # Save the act or resolve to the S3 bucket
-            save_to_s3(bucket_name, key, act)
+            # prevent overwriting existing objects
+            if prevent_overwrites == "true":
+                try:
+                    s3.head_object(Bucket=bucket_name, Key=key)
+                    print(f"Object {key} already exists. Skipping.")
+                except s3.exceptions.ClientError as e:
+                    if e.response['Error']['Code'] == '404':
+                        # The object does not exist, so we can save it
+                        save_to_s3(bucket_name, key, act)
+                    else:
+                        # Something else went wrong
+                        raise
+            else:           
+                save_to_s3(bucket_name, key, act)
 
 # Get full document blocks
 def get_full_doc_blocks(job_id):    

@@ -5,6 +5,7 @@ import { cognitoDomainName } from "./constants"
 import { AuthorizationStack } from "./authorization"
 import { UserInterface } from "./user-interface"
 import { DataStack } from "./pre-processing"
+import { IndexingStack } from './indexing';
 
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
@@ -32,6 +33,9 @@ export class GenAiMvpStack extends cdk.Stack {
     })
     const dataStack = new DataStack(this, "DataPipeline", {
       knowledgeBucket: chatbotAPI.filesBucket
+    });
+    const indexingStack = new IndexingStack(this, "Indexing", {
+      api: chatbotAPI
     });
     
   }

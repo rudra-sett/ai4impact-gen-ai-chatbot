@@ -1,5 +1,6 @@
 
 import * as cdk from "aws-cdk-lib";
+import * as lambda from "aws-cdk-lib/aws-lambda";
 
 import { AuthorizationStack } from '../authorization'
 
@@ -31,6 +32,8 @@ export class ChatBotApi extends Construct {
   public readonly filesBucket: Bucket;
   // public readonly userFeedbackBucket: s3.Bucket;
   // public readonly wsAPI: apigwv2.WebSocketApi;
+  public readonly amendmentFunction: lambda.Function;
+  
 
   constructor(scope: Construct, id: string, props: ChatBotApiProps) {
     super(scope, id);

@@ -24,7 +24,7 @@ def get_s3_chunks(bucket_name, year, chapter):
         
         # Retrieve the file content
         file_obj = s3.get_object(Bucket=bucket_name, Key=key)
-        file_content = file_obj['Body'].read().decode('utf-8')
+        file_content = file_obj['Body'].read().decode('utf-8','ignore')
         
         # Append content to the list of chunks
         chunks.append(file_content)
