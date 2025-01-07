@@ -23,7 +23,7 @@ export class IndexingStack extends Construct {
     
     /* Building versions of acts*/
     // we also just need a single step function that handles this
-    const generateVersionsStepFunction = new VersionedActsStack(this, 'CacheAmendmentsStateMachine', {
+    const generateVersionsStepFunction = new VersionedActsStack(this, 'VersionedActsStateMachine', {
       amendmentFunction: props.api.amendmentFunction,
       actsBucket: props.api.filesBucket,
       insertAmendmentFunction: props.api.insertAmendmentFunction,
