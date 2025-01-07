@@ -33,6 +33,7 @@ export class ChatBotApi extends Construct {
   // public readonly userFeedbackBucket: s3.Bucket;
   // public readonly wsAPI: apigwv2.WebSocketApi;
   public readonly amendmentFunction: lambda.Function;
+  public readonly insertAmendmentFunction: lambda.Function;
 
 
   constructor(scope: Construct, id: string, props: ChatBotApiProps) {
@@ -69,6 +70,7 @@ export class ChatBotApi extends Construct {
       })
 
     this.amendmentFunction = lambdaFunctions.amendmentsFunction;
+    this.insertAmendmentFunction = lambdaFunctions.insertAmendmentFunction;
 
     const wsAuthorizer = new WebSocketLambdaAuthorizer('WebSocketAuthorizer', props.authentication.lambdaAuthorizer, { identitySource: ['route.request.querystring.Authorization'] });
 

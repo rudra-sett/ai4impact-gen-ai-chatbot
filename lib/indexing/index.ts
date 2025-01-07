@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 
 import { ChatBotApi } from "../chatbot-api";
 import { CacheAmendments } from './build-cache/cache';
+import { VersionedActsStack } from './build-versions/versions';
 
 export interface IndexingStackProps {
   readonly api: ChatBotApi;
@@ -22,8 +23,13 @@ export class IndexingStack extends Construct {
     
     /* Building versions of acts*/
     // we also just need a single step function that handles this
+    const generateVersionsStepFunction = new VersionedActsStack(this, 'CacheAmendmentsStateMachine', {
+      amendmentFunction: props.api.amendmentFunction,
+      actsBucket: props.api.filesBucket,
+      insertAmendmentFunction: props.api.insertAmendmentFunction,
+    });
 
-
+    
   
   }
 }
