@@ -7,6 +7,7 @@ bedrock = boto3.client('bedrock-runtime')
 modelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
 bucket_name = os.environ['BUCKET']
 ddb_table_name = os.environ['DDB_TABLE_NAME']
+use_nova=True
 
 def get_act_text(year, chapter):
     s3 = boto3.client('s3')
@@ -19,6 +20,24 @@ def get_act_text_from_key(key):
     response = s3.get_object(Bucket=bucket_name, Key=key)
     body = response['Body'].read().decode('utf-8', 'ignore')
     return body
+
+def number_to_words(num):
+    units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+             'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
+             'sixteen', 'seventeen', 'eighteen', 'nineteen']
+    tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy',
+            'eighty', 'ninety']
+    if num < 20:
+        return units[num]
+    if num < 100:
+        return tens[num // 10]  + ("-" + units[num % 10] if num % 10 != 0 else '')
+    if num < 2000:
+        return units[num // 100] + ' hundred' + (' and ' + number_to_words(num % 100) if num % 100 != 0 else '')    
+    return str(num)
+
+def split_sections(text: str):
+    sections = re.findall(r'(SECTION \d+\..*?)(?=SECTION \d+\.|\Z)', text, re.DOTALL)
+    return sections
 
 def lambda_handler(event, context):
     data = json.loads(event['body'])
@@ -37,9 +56,18 @@ def lambda_handler(event, context):
             original = get_act_text_from_key(key)
     else:
         original = get_act_text(amended_year, amended_chapter)
-    amendment = get_act_text(amending_year, amending_chapter)    
+    amendment = get_act_text(amending_year, amending_chapter)  
 
-    new_text = process_amendments(original.replace("\r\n"," "), f"Chapter {amended_chapter} of the Acts of {amended_year}", [amendment.replace("\r\n"," ")], amended_year, amended_chapter, amending_year, amending_chapter)
+    # for the more recent, larger acts, split them into section
+    # cannot do this for older ones due to OCR noise
+    amendments = [amendment.replace("\r\n"," ")]
+    if int(amending_year) > 1959:
+        amendments = split_sections(amendment.replace("\r\n"," "))
+    
+    # filter sections for those that contain the chapter number or the chapter number in the form of a word
+    amendments = [amendment for amendment in amendments if f"{amended_chapter}" in amendment or f"{number_to_words(int(amended_chapter))}" in amendment]  
+
+    new_text = process_amendments(original.replace("\r\n"," "), f"Chapter {amended_chapter} of the Acts of {amended_year}", amendments, amended_year, amended_chapter, amending_year, amending_chapter)
 
     if use_key:
         new_key = f"versioned/acts/{amended_year}/chapter-{amended_chapter}-version-{amending_year}-{amending_chapter}.txt"
@@ -54,7 +82,9 @@ def lambda_handler(event, context):
 
 def process_amendments(original_text, original_chapter, amendments, amended_year, amended_chapter, amending_year, amending_chapter):
     current_text = original_text
+    i = 1
     for amendment in amendments:
+        print(f"Inserting amendment from SECTION {i}")
         structured = structure_amendment(
             amendment_text=amendment, 
             original_text=current_text, 
@@ -67,21 +97,11 @@ def process_amendments(original_text, original_chapter, amendments, amended_year
         if structured:
             for call in structured:
                 current_text = apply_structured_amendment(current_text, call, amendment)
+        i+=1
     return current_text
 
 
 def structure_amendment(amendment_text, original_text, chapter_name, amended_year, amended_chapter, amending_year, amending_chapter, max_attempts=3):
-    # Check DynamoDB first
-    ddb = boto3.resource('dynamodb')
-    table = ddb.Table(ddb_table_name)
-
-    pk = f"INSERTION-{amended_year}-{amended_chapter}"
-    sk = f"{amending_year}-{amending_chapter}"
-
-    existing_record = table.get_item(Key={'Amended': pk, 'AmendedBy': sk})
-    if 'Item' in existing_record:
-        print("Found existing structured amendments in DynamoDB. Skipping LLM call.")
-        return existing_record['Item']['tool_calls']
     
     # TODO: add an overwrite mode
 
@@ -92,7 +112,11 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
     # print(current_text)
     stop = False
     while not stop:
-        tool_call_blocks, content = call_llm_for_tool_calls(current_text, chapter_name, amendment_text, response_messages)
+        
+        if use_nova:
+            tool_call_blocks, content = call_nova_for_tool_calls(current_text, chapter_name, amendment_text, response_messages)
+        else:
+            tool_call_blocks, content = call_llm_for_tool_calls(current_text, chapter_name, amendment_text, response_messages)
         
         if not tool_call_blocks or len(tool_call_blocks) == 0:            
             if len(response_messages) == 0:
@@ -103,10 +127,16 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
                     "role" : "assistant",
                     "content" : content
                 })
-                response_messages.append({
-                    "role" : "user",
-                    "content" : "Thanks! If there are edits that need to be made, please use the tool now."
-                })
+                if use_nova:
+                    response_messages.append({
+                        "role" : "user",
+                        "content" : [{"text" : "Thanks! If there are edits that need to be made, please use the tool now."}]
+                    })
+                else:
+                    response_messages.append({
+                        "role" : "user",
+                        "content" : "Thanks! If there are edits that need to be made, please use the tool now."
+                    })
                 stop = False
             else:
                 # No tool calls returned, means we're done!
@@ -133,13 +163,13 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
 
     if len(successful_edits) > 0:
         # Store the successful edits in DDB
-        table.put_item(
-                Item={
-                    'Amended': pk,
-                    'AmendedBy': sk,
-                    'tool_calls': successful_edits
-                }
-            )
+        # table.put_item(
+        #         Item={
+        #             'Amended': pk,
+        #             'AmendedBy': sk,
+        #             'tool_calls': successful_edits
+        #         }
+        #     )
         print("got successful edits!")
         return successful_edits
     # If we reach here, we failed to get valid tool calls after all attempts
@@ -149,40 +179,67 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
 
 def call_llm_for_tool_calls(original_text, chapter_name, amendment_text, feedback_messages):
     system_prompt = """
-                    You are a skilled, precise legal document editor. Your task is to accurately apply changes from an amending Session Law to an original Session Law using a text editing tool. Here's how to approach this task:
-
+                    Role:
+                    You are a skilled legal document editor tasked with accurately applying amendments from an amending Session Law to an original Session Law. You will be given a specific section of the amending act, which may or may not have a relevant amendment.
+                    
                     Key Responsibilities:
                     
-                    Amendment Focus:
+                    1. Amendment Application:
                     
-                    Identify and apply specific modifications stated in the amending act.
-                    Concentrate on explicit alterations to the original text.
-                    Precise Wording:
+                    - Identify and apply specific changes from the amending act.
                     
-                    Maintain exact wording from both original and amending texts.
-                    Replicate the text as written, including any existing errors.
-                    Formatting Guidelines: For minor changes (single words, phrases, or sentences): Use: target_text: [exact text to replace] new_text: [exact replacement text]
+                    - Focus on explicit modifications to the original text.
                     
-                    For major changes (multiple sentences, paragraphs, or sections): Use: original_start_selector: [unique phrase marking start of replaced section] original_end_selector: [unique phrase marking end of replaced section] amendment_start_selector: [unique phrase marking start of new text] amendment_end_selector: [unique phrase marking end of new text]
+                    - Ignore amendments to other chapters or acts, particularly General Laws. 
                     
-                    If you are having issues with the editor telling you it cannot find text, then it is best to try the selector method with smaller phrases. 
-                    Important:
+                    2. Precision:
                     
-                    Use the major change format with selectors for larger, multi-paragraph modifications.
-                    Apply a single format (either minor or major) for each modification.
-                    Selector Best Practices:
+                    - Maintain exact wording from both original and amending texts, including any errors.
                     
-                    Choose selectors verbatim from the text.
-                    Ensure selectors are unique within their respective document segment.
-                    Include necessary headers or punctuation to maintain legal structure and context.
-                    Use original_start_selector and original_end_selector from the original text only.
-                    Use amendment_start_selector and amendment_end_selector from the amendment text only.
-                    Process: Before executing edits, use <thinking> tags to briefly explain the intended change and your reasoning.
-                    Your thinking process should include a <verification_check> on your chosen edits to confirm new text and target text, or original and amendment selectors are **found in their respective texts**, **non-overlapping**, and **will make the appropriate changes**. This includes non-standard punctuation or errors.
+                    3. Formatting Guidelines:
                     
-                    You will be comprehensive with this task, making as many edits as needed to capture all amendments.
+                    - Minor Changes (single words, phrases, or sentences):
+                    Use: target_text: [exact text to replace]
+                    new_text: [exact replacement text]
                     
-                    By following these guidelines, you'll effectively edit legal documents while preserving their integrity and accuracy. 
+                    - Major Changes (multiple sentences, paragraphs, or sections):
+                    Use: original_start_selector: [unique phrase marking start of replaced section]
+                    original_end_selector: [unique phrase marking end of replaced section]
+                    amendment_start_selector: [unique phrase marking start of new text]
+                    amendment_end_selector: [unique phrase marking end of new text]
+                    
+                    - Always use selectors for sections and paragraphs; never provide new_text or target_text when using selectors.
+                    
+                    - To select a section, use the section header, and the last couple of words of the section. Do not use the next section's header, only the few words before. 
+                    
+                    4. Selector Best Practices:
+                    
+                    - Choose selectors verbatim from the text.
+                    
+                    - Ensure selectors are unique within their respective document segment.
+                    
+                    - Include headers or punctuation for context.
+                    
+                    - Use original_start_selector and original_end_selector from the original text only.
+                    
+                    - Use amendment_start_selector and amendment_end_selector from the amendment text only.
+                    
+                    5. Process:
+                    
+                    - Before editing, use <thinking> tags to explain the change and reasoning.
+                    
+                    - Include a <verification_check> to confirm:
+                    
+                    a. Selectors are found in their respective texts.
+                    
+                    b. Selectors are non-overlapping and appropriate for the change.
+                    
+                    c. Non-standard punctuation or errors are preserved.
+                    
+                    - Provide a list of proposed edits and verify selectors are concise and accurate.
+                    
+                    6. Goal:
+                    Apply all amendments comprehensively while preserving the integrity and accuracy of the legal document.
 
                     """
 
@@ -221,7 +278,7 @@ def call_llm_for_tool_calls(original_text, chapter_name, amendment_text, feedbac
                         "amendment_type": {
                             "type": "string",
                             "enum": ["insert", "replace", "strike"],
-                            "description": "The type of amendment"
+                            "description": "The text-editing action to perform."
                         },
                         "target_text": {
                             "type": "string",
@@ -275,6 +332,207 @@ def call_llm_for_tool_calls(original_text, chapter_name, amendment_text, feedbac
 
     return tool_call_blocks, content #if tool_call_blocks else None
 
+def call_nova_for_tool_calls(original_text, chapter_name, amendment_text, feedback_messages):
+    system_prompt = """
+                    <system_prompt>
+                        <role>
+                            You are a specialized legal document editor. Your task is to precisely incorporate amendments from a modifying Session Law into an original Session Law.
+                        </role>
+                        <primary_duties>
+                            <duty>
+                                <title>Amendment Execution</title>
+                                <description>
+                                    Detect and implement designated changes from the modifying act. Concentrate solely on the specified alterations to the original text. Disregard any amendments pertaining to different chapters or acts, especially General Laws.
+                                </description>
+                            </duty>
+                            <duty>
+                                <title>Accuracy</title>
+                                <description>
+                                    Preserve the exact wording from both the original and modifying texts, including any mistakes.
+                                </description>
+                            </duty>
+                            <duty>
+                                <title>Formatting Instructions</title>
+                                <description>
+                                    <minor_adjustments>
+                                        Utilize: 
+                                        target_text: [precise text to substitute]
+                                        new_text: [precise replacement text]
+                                    </minor_adjustments>
+                                    <significant_adjustments>
+                                        Utilize: 
+                                        original_start_indicator: [distinct phrase marking the beginning of the substituted section]
+                                        original_end_indicator: [distinct phrase marking the conclusion of the substituted section]
+                                        amendment_start_indicator: [distinct phrase marking the beginning of the new text]
+                                        amendment_end_indicator: [distinct phrase marking the conclusion of the new text]
+                                        Always employ indicators for sections and paragraphs; never supply new_text or target_text when utilizing indicators.
+                                        To pinpoint a section, use the section title and the final few words of the section. Do not utilize the succeeding section's title; only the few words preceding it.
+                                    </significant_adjustments>
+                                </description>
+                            </duty>
+                            <duty>
+                                <title>Indicator Best Practices</title>
+                                <description>
+                                    Opt for indicators that are verbatim from the text. Guarantee that indicators are exclusive within their individual document segment. Incorporate headers or punctuation for clarity. Utilize original_start_indicator and original_end_indicator exclusively from the original text. Utilize amendment_start_indicator and amendment_end_indicator exclusively from the amendment text.
+                                </description>
+                            </duty>
+                            <duty>
+                                <title>Procedure</title>
+                                <description>
+                                    Prior to editing, employ thinking tags to elucidate the modification and rationale. Incorporate a verification_check to validate: Indicators are situated in their corresponding texts.
+                                </description>
+                            </duty>
+                        </primary_duties>
+                    </system_prompt>
+
+
+                    """
+
+    user_message = f"""
+    <original_text name={chapter_name}>
+    {original_text}
+    </original_text>
+
+    <amending_act>
+    {amendment_text}
+    </amending_act>
+    """
+    messages = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "text": user_message
+                    }
+                ]
+            },
+        ] + feedback_messages
+    
+    system_list = [
+            {
+                "text": system_prompt
+            }
+    ]
+
+    
+    inf_params = {"maxTokens": 4096, "temperature": 0}
+
+    tool_config = {"tools" : [
+            {
+                "toolSpec" : {
+                    "name": "small_text_edit",
+                    "description": "Makes insertions, replacements, or deletions of content in text using direct text references.",
+                    "inputSchema": {
+                        "json" : {
+                                  "type": "object",
+                                  "properties": {
+                                    "amendment_type": {
+                                      "type": "string",
+                                      "enum": ["insert", "replace", "strike"],
+                                      "description": "The text-editing action to perform."
+                                    },
+                                    "target_text": {
+                                      "type": "string",
+                                      "description": "The exact text being modified, use this for small changes like individual words or sentences."
+                                    },
+                                    "new_text": {
+                                      "type": "string",
+                                      "description": "The replacement text, use this for small changes like individual words or sentences."
+                                    },
+                                    "position": {
+                                      "type": "string",
+                                      "enum": ["before", "after"],
+                                      "description": "For insertions, whether to insert before or after."
+                                    }
+                                  },
+                                  "required": ["amendment_type", "target_text", "new_text", "position"]
+                                  }
+                                
+
+                    }
+                }
+            },
+            {
+                "toolSpec" : {
+                    "name": "large_text_edit",
+                    "description": "Makes insertions, replacements, or deletions of large amounts of content in text using selectors.",
+                    "inputSchema": {
+                        "json" : {
+                                  "type": "object",
+                                  "properties": {
+                                    "amendment_type": {
+                                      "type": "string",
+                                      "enum": ["insert", "replace", "strike"],
+                                      "description": "The text-editing action to perform."
+                                    },
+                                    "position": {
+                                      "type": "string",
+                                      "enum": ["before", "after"],
+                                      "description": "For insertions, whether to insert before or after."
+                                    },
+                                    "original_start_selector": {
+                                      "type": "string",
+                                      "description": "Short phrase marking start of section change. Use this only for large changes."
+                                    },
+                                    "original_end_selector": {
+                                      "type": "string",
+                                      "description": "Short phrase marking end of section change. Use this only for large changes."
+                                    },
+                                    "amendment_start_selector": {
+                                      "type": "string",
+                                      "description": "Short phrase marking the start of the relevant portion in the amendment text. Use this only for large changes."
+                                    },
+                                    "amendment_end_selector": {
+                                      "type": "string",
+                                      "description": "Short phrase marking the end of the relevant portion in the amendment text. Use this only for large changes."
+                                    }
+                                  },
+                                  "required": [
+                                    "amendment_type",
+                                    "position",
+                                    "original_start_selector",
+                                    "original_end_selector",
+                                    "amendment_start_selector",
+                                    "amendment_end_selector"
+                                  ]
+                                }
+                    }
+                }
+            }
+        ]}
+        
+    body = {
+        "schemaVersion": "messages-v1",
+        "system": system_list,
+        "messages": messages,
+        "toolConfig": tool_config,
+        "inferenceConfig": inf_params,
+    }
+
+    response = bedrock.converse(
+        modelId="us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        # modelId="us.amazon.nova-pro-v1:0",
+        # modelId='anthropic.claude-3-5-sonnet-20240620-v1:0',
+        # modelId="us.anthropic.claude-3-5-haiku-20241022-v1:0",
+        # body=json.dumps(body)
+        messages=messages,
+        system=system_list,
+        toolConfig=tool_config,
+        inferenceConfig=inf_params
+    )
+    
+    # print(response)
+    
+    # response_body = json.loads(response['body'].read().decode('utf-8'))
+    # print(response_body)
+    content = response['output']['message']['content']
+    tool_call_blocks = []
+    for block in content:
+        print(block)
+        if 'toolUse' in block:
+            tool_call_blocks.append(block['toolUse'])
+
+    return tool_call_blocks, content
 
 def validate_tool_calls(original_text, tool_call_blocks, amendment_text):
     """Attempt to apply each tool call in a dry run to see if it succeeds.
@@ -292,29 +550,53 @@ def validate_tool_calls(original_text, tool_call_blocks, amendment_text):
                 # but let's not assume it's always an error; sometimes no change needed.
                 pass
             temp_text = temp_text_new
-            response_messages.append({
-                "type" : "tool_result",
-                "tool_use_id" : tool_call['id'],
-                "content" : "Success!"
-            })
+            if use_nova:
+                response_messages.append({
+                    "toolResult" : {
+                        "toolUseId" : tool_call['toolUseId'],
+                        "content" : [{"text":"Success!"}]
+                    }
+                })
+            else:
+                response_messages.append({
+                    "type" : "tool_result",
+                    "tool_use_id" : tool_call['id'],
+                    "content" : "Success!"
+                })
             successful_calls.append(call)
             print("success")
         except ValueError as e:
             # If we raise a ValueError for known errors in apply, we catch here
-            response_messages.append({
-                "type" : "tool_result",
-                "tool_use_id" : tool_call['id'],
-                "content" : str(e)
-            })  
+            if use_nova:
+                response_messages.append({
+                    "toolResult" : {
+                        "toolUseId" : tool_call['toolUseId'],
+                        "content" : [{"text":str(e)}]
+                    }
+                })
+            else:
+                response_messages.append({
+                    "type" : "tool_result",
+                    "tool_use_id" : tool_call['id'],
+                    "content" : str(e)
+                })  
             print("failed")
             # return False, response_messages
         except Exception as e:
             # Any unexpected error
-            response_messages.append({
-                "type" : "tool_result",
-                "tool_use_id" : tool_call['id'],
-                "content" : str(e)
-            }) 
+            if use_nova:
+                response_messages.append({
+                    "toolResult" : {
+                        "toolUseId" : tool_call['toolUseId'],
+                        "content" : [{"text":str(e)}]
+                    }
+                })
+            else:
+                response_messages.append({
+                    "type" : "tool_result",
+                    "tool_use_id" : tool_call['id'],
+                    "content" : str(e)
+                }) 
             print("failed for some other reason")
             # return False, response_messages
     return successful_calls, response_messages, temp_text
@@ -329,16 +611,21 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
     if 'new_text' in structured_amendment and 'amendment_start_selector' not in structured_amendment:
         if len(structured_amendment['new_text']) > 1500:
             raise ValueError("Excessively long direct replacement, please use selectors!")
+        
 
     if amendment_text and 'amendment_start_selector' in structured_amendment and 'amendment_end_selector' in structured_amendment:
         start_marker = structured_amendment['amendment_start_selector']
         end_marker = structured_amendment['amendment_end_selector']
         
-        start_esc = re.escape(start_marker)
-        end_esc = re.escape(end_marker)        
+        start_esc = "".join(f"{char}[-]?" if char.isalnum() else re.escape(char) for char in start_marker) #re.escape(start_marker)
+        end_esc = "".join(f"{char}[-]?" if char.isalnum() else re.escape(char) for char in end_marker)
         
-        pattern = rf'(?P<content>{start_esc}.*?{end_esc}){{s<=0,e<=1}}'
-        match = re.search(pattern, amendment_text, flags=re.DOTALL)
+        # if end_marker in start_marker or start_marker in end_marker:
+        #     if dry_run:
+        #         raise ValueError("Start and end markers overlap, please change one of them.")
+        
+        pattern = rf'(?P<content>{start_esc}.*?{end_esc})'
+        match = re.search(pattern, amendment_text, flags=re.DOTALL | re.IGNORECASE)
         if not match:
             if start_marker == end_marker:
                 structured_amendment['new_text'] = start_marker
@@ -358,14 +645,14 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
         start = structured_amendment['original_start_selector']
         end = structured_amendment['original_end_selector']
         
-        start_esc = re.escape(start)
-        end_esc = re.escape(end)
+        start_esc = "".join(f"{char}[-]?" if char.isalnum() else re.escape(char) for char in start) #re.escape(start_marker)
+        end_esc = "".join(f"{char}[-]?" if char.isalnum() else re.escape(char) for char in end)
 
         if "SECTION" in end and structured_amendment.get('amendment_type','') == 'replace':
             raise ValueError("Please do not use section headers as the end of an original text selection, because it will get overwritten. Use the last words of the amended section instead.")
         
-        pattern = rf'(?P<content>{start_esc}.*?{end_esc}){{s<=0,e<=0}}'
-        match = re.search(pattern, original_text, flags=re.DOTALL)
+        pattern = rf'(?P<content>{start_esc}.*?{end_esc})'
+        match = re.search(pattern, original_text, flags=re.DOTALL | re.IGNORECASE)
         if not match:
             if start_esc == end_esc:
                 structured_amendment['target_text'] = structured_amendment['original_start_selector']
@@ -397,7 +684,7 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
     new_text = structured_amendment.get('new_text', '')
 
     max_subs = 0 #max(3,len(target_text) // 15)
-    max_errs = 1 #max(3,len(target_text) // 15)
+    max_errs = 0 #max(3,len(target_text) // 15)
 
     if not target_text and amendment_type != 'insert':
         # If there's no target text for a replace/strike, something's off
@@ -408,10 +695,10 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
             raise ValueError(error_msg)
         return original_text
 
-    fuzzy_pattern = f"({re.escape(target_text)}){{s<={max_subs},e<={max_errs}}}"
+    fuzzy_pattern = f"({''.join(f'{char}[-]?' if char.isalnum() else re.escape(char) for char in target_text)})"
 
     if amendment_type == 'replace':
-        replaced_text = re.sub(fuzzy_pattern, new_text, original_text)
+        replaced_text = re.sub(fuzzy_pattern, new_text, original_text, flags = re.DOTALL | re.IGNORECASE)
         if replaced_text == original_text:
             error_msg = f"Could not (fuzzily) find target text for replace: {target_text}"
             print(error_msg)
@@ -420,7 +707,7 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
         return replaced_text
     
     elif amendment_type == 'insert':
-        match = re.search(fuzzy_pattern, original_text)
+        match = re.search(fuzzy_pattern, original_text, flags = re.DOTALL | re.IGNORECASE)
         if not match:
             error_msg = f"Could not (fuzzily) find target text for insert: {target_text}"
             print(error_msg)
@@ -436,7 +723,7 @@ def apply_structured_amendment(original_text, structured_amendment, amendment_te
         return original_text[:insert_idx] + new_text + original_text[insert_idx:]
     
     elif amendment_type == 'strike':
-        struck_text = re.sub(fuzzy_pattern, '', original_text)
+        struck_text = re.sub(fuzzy_pattern, '', original_text, flags = re.DOTALL | re.IGNORECASE)
         if struck_text == original_text:
             error_msg = f"Could not (fuzzily) find target text for strike: {target_text}"
             print(error_msg)
