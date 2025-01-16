@@ -42,6 +42,9 @@ def number_to_words(num):
 
 def split_sections(text: str):
     sections = re.findall(r'(SECTION \d+\..*?)(?=SECTION \d+\.|\Z)', text, re.DOTALL)
+    if len(sections) == 0:
+        # if there are no sections, the act is short enough to just use the whole thing
+        return [text]
     return sections
 
 def lambda_handler(event, context):
@@ -87,6 +90,8 @@ def lambda_handler(event, context):
 
 def process_amendments(original_text, original_chapter, amendments, amended_year, amended_chapter, amending_year, amending_chapter):
     
+    print(f"Processing {len(amendments)} amendments...")
+
     current_text = original_text
     successful_edits = []
 
