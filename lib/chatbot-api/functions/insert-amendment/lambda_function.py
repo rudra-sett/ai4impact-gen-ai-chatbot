@@ -103,6 +103,17 @@ def process_amendments(original_text, original_chapter, amendments, amended_year
 
 def structure_amendment(amendment_text, original_text, chapter_name, amended_year, amended_chapter, amending_year, amending_chapter, max_attempts=3):
     
+    ddb = boto3.resource('dynamodb')
+    table = ddb.Table(ddb_table_name)
+
+    pk = f"INSERTION-{amended_year}-{amended_chapter}"
+    sk = f"{amending_year}-{amending_chapter}"
+
+    existing_record = table.get_item(Key={'Amended': pk, 'AmendedBy': sk})
+    if 'Item' in existing_record:
+        print("Found existing structured amendments in DynamoDB. Skipping LLM call.")
+        return existing_record['Item']['tool_calls']
+    
     # TODO: add an overwrite mode
 
     # If not found in DDB, call the LLM in a loop until successful or max attempts reached
@@ -163,13 +174,13 @@ def structure_amendment(amendment_text, original_text, chapter_name, amended_yea
 
     if len(successful_edits) > 0:
         # Store the successful edits in DDB
-        # table.put_item(
-        #         Item={
-        #             'Amended': pk,
-        #             'AmendedBy': sk,
-        #             'tool_calls': successful_edits
-        #         }
-        #     )
+        table.put_item(
+                Item={
+                    'Amended': pk,
+                    'AmendedBy': sk,
+                    'tool_calls': successful_edits
+                }
+            )
         print("got successful edits!")
         return successful_edits
     # If we reach here, we failed to get valid tool calls after all attempts
