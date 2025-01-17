@@ -59,6 +59,8 @@ export class LambdaFunctionStack extends cdk.Stack {
       resources: [props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*"]
     }));
 
+    this.listActsFunction = listActsFunction;
+
     const insertAmendmentFunction = new lambda.Function(scope, 'InsertAmendmentFunction', {
       runtime: lambda.Runtime.PYTHON_3_12, 
       code: lambda.Code.fromAsset(path.join(__dirname, 'insert-amendment'), {
