@@ -8,6 +8,7 @@ modelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
 bucket_name = os.environ['BUCKET']
 ddb_table_name = os.environ['DDB_TABLE_NAME']
 use_nova=True
+overwrite=False
 
 ddb = boto3.resource('dynamodb')
 table = ddb.Table(ddb_table_name)
@@ -48,11 +49,15 @@ def split_sections(text: str):
     return sections
 
 def lambda_handler(event, context):
+    global overwrite
     data = json.loads(event['body'])
     amended_year = data['year']
     amended_chapter = data['chapter']
     amending_year = data['amend_year']
     amending_chapter = data['amend_chapter']
+    overwrite = 'overwrite' in data
+    if overwrite:
+        print("Overwrite requested")
     use_key = 'use_key' in data and data['use_key']
         
     if 'client_text' in data:
@@ -103,7 +108,7 @@ def process_amendments(original_text, original_chapter, amendments, amended_year
         print("Found existing structured amendments in DynamoDB. Skipping LLM call.")
         successful_edits = existing_record['Item']['tool_calls']
 
-    if len(successful_edits) > 0:
+    if len(successful_edits) > 0 and not overwrite:
         for call in successful_edits:
             current_text = apply_structured_amendment(current_text, call)
         return current_text
