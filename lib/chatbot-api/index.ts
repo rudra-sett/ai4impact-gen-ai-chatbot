@@ -98,6 +98,14 @@ export class ChatBotApi extends Construct {
       jwtAudience: [props.authentication.userPoolClient.userPoolClientId],
     })
 
+    const listActsAPIIntegration = new HttpLambdaIntegration('ListActsAPIIntegration', lambdaFunctions.listActsFunction);
+    restBackend.restAPI.addRoutes({
+      path: "/list-acts",
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.POST, apigwv2.HttpMethod.DELETE],
+      integration: listActsAPIIntegration,
+      authorizer: httpAuthorizer,
+    })
+
     const insertAmendmentAPIIntegration = new HttpLambdaIntegration('InsertAmendmentAPIIntegration', lambdaFunctions.insertAmendmentFunction);
     restBackend.restAPI.addRoutes({
       path: "/insert-amendment",

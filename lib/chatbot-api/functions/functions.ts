@@ -36,9 +36,28 @@ export class LambdaFunctionStack extends cdk.Stack {
   public readonly searchLawsFunction: lambda.Function;
   public readonly amendmentsFunction : lambda.Function;
   public readonly insertAmendmentFunction : lambda.Function;
+  public readonly listActsFunction : lambda.Function;
 
   constructor(scope: Construct, id: string, props: LambdaFunctionStackProps) {
     super(scope, id);
+
+    const listActsFunction = new lambda.Function(scope, 'ListActFunction', {
+      runtime: lambda.Runtime.PYTHON_3_12, // Choose any supported Node.js runtime
+      code: lambda.Code.fromAsset(path.join(__dirname, 'list-acts')), // Points to the lambda directory
+      handler: 'lambda_function.lambda_handler', // Points to the 'hello' file in the lambda directory
+      environment: {
+        "BUCKET": props.knowledgeBucket.bucketName
+      },
+      timeout: cdk.Duration.seconds(30)
+    });
+
+    listActsFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        's3:*'
+      ],
+      resources: [props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*"]
+    }));
 
     const insertAmendmentFunction = new lambda.Function(scope, 'InsertAmendmentFunction', {
       runtime: lambda.Runtime.PYTHON_3_12, 
