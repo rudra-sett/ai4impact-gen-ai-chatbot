@@ -9,6 +9,7 @@ import useOnFollow from "../../../common/hooks/use-on-follow";
 import { ApiClient } from "../../../common/api-client/api-client";
 import { AppContext } from "../../../common/app-context";
 import diff_match_patch from "diff-match-patch";
+import Browse from "../../../components/browse/browse";
 
 export default function Playground() {
   const { sessionId, chapter, year } = useParams();
@@ -227,6 +228,13 @@ export default function Playground() {
                     setSearchResults={setSearchResults}
                     changeTab={setActiveTab}
                   />
+                )
+              },
+              {
+                label: "Browse",
+                id: "browse",
+                content: (
+                  <Browse sessionId={sessionId} changeTab={setActiveTab}/>                  
                 )
               }
             ]}

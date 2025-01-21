@@ -46,7 +46,7 @@ export class LambdaFunctionStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, 'list-acts')), // Points to the lambda directory
       handler: 'lambda_function.lambda_handler', // Points to the 'hello' file in the lambda directory
       environment: {
-        "BUCKET": props.knowledgeBucket.bucketName
+        "BUCKET_NAME": props.knowledgeBucket.bucketName
       },
       timeout: cdk.Duration.seconds(30)
     });
