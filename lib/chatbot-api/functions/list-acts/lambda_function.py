@@ -1,12 +1,15 @@
 import os
 import boto3
 import json
+import re
 
 s3_client = boto3.client('s3')
 
 def lambda_handler(event, context):
   # Get the year from the API Gateway request
   year = event['queryStringParameters']['year']
+  start_index = int(event['queryStringParameters'].get('startIndex', 0))
+  page_size = int(event['queryStringParameters'].get('pageSize', 10))
   
   # Get the bucket name from environment variables
   bucket_name = os.environ['BUCKET_NAME']
@@ -22,7 +25,12 @@ def lambda_handler(event, context):
   
   # Iterate over the contents of the response
   if 'Contents' in response:
-    for obj in response['Contents']:
+    # Sort contents
+    contents = sorted(
+      response.get('Contents', []),
+      key=lambda x: int(re.search(r'\d+', x['Key'].split('/')[-1].split('-')[1]).group())
+      )  
+    for obj in contents[start_index:start_index + page_size]:
       key = obj['Key']
       # Read the contents of the file
       file_obj = s3_client.get_object(Bucket=bucket_name, Key=key)
@@ -39,9 +47,7 @@ def lambda_handler(event, context):
         'preview' : preview
       }
       items.append(item)
-  
-  # Return the list of items, sorted by year and chapter number
-  items = sorted(items, key=lambda x: (int(x['year']), int(x['chapter_number'])))
+        
   return {
     'statusCode': 200,
     'body': json.dumps(items)

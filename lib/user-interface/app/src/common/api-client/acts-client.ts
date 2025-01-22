@@ -94,9 +94,9 @@ export class ActsClient {
     return result;
   }
 
-  async listActs(year: string) {
+  async listActs(year: string, startIndex: number, pageSize: number) {
     const auth = await Utils.authenticate();
-    const response = await fetch(this.API + `/list-acts?year=${year}`, {
+    const response = await fetch(this.API + `/list-acts?year=${year}&startIndex=${startIndex}&pageSize=${pageSize}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

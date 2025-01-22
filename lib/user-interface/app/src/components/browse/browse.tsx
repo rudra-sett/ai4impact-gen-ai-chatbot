@@ -1,5 +1,5 @@
 
-import { useContext, useEffect, useState } from "react"
+import { useContext, useEffect, useState, useRef, SetStateAction } from "react"
 import { Box, Cards, CollectionPreferences, Header, Pagination, Select, SpaceBetween, TextFilter } from "@cloudscape-design/components"
 import { Link } from "react-router-dom";
 
@@ -17,31 +17,75 @@ export default function Browse(props: {
   const [loading, setLoading] = useState<boolean>(false);  
   const appContext = useContext(AppContext);
 
+  const [currentYearActPages, setCurrentYearActPages] = useState<any[]>([]);
   const [currentYearActs, setCurrentYearActs] = useState<any[]>([]);
+
+  const turnPage = useRef(false);
 
   const [
     selectedYear,
     setSelectedYear
   ] = useState({ label: "2024", value: "2024" });
 
+  const [preferences, setPreferences] = useState({
+    pageSize: 10,    
+  });
 
-  async function getList() {
-    setLoading(true);
-    const query = selectedYear.value;
-    const apiClient = new ApiClient(appContext);
-    const results = await apiClient.acts.listActs(query);
-    setCurrentYearActs(results);
-    setLoading(false);
-  }
+    async function getList(resetPageIndex = false) {
+      setLoading(true);    
+      const query = selectedYear.value;
+      const apiClient = new ApiClient(appContext);
+      let results: any[];
+      if (resetPageIndex)  {
+        results = await apiClient.acts.listActs(query, 0, preferences.pageSize);
+      } else {
+        results = await apiClient.acts.listActs(query,(currentPageIndex - 1) * preferences.pageSize,preferences.pageSize);
+      }    
+      if (results.length === 0) {
+        setCurrentPageIndex(currentPageIndex - 1)
+        setLoading(false);
+        return;
+      }
+      if (resetPageIndex) {
+        turnPage.current = false;
+        setCurrentPageIndex(1);
+        setCurrentYearActPages([results]);
+      } else {
+        setCurrentYearActPages((prev) => {
+          prev[currentPageIndex] = results;
+          return prev;
+        });
+      }
+      setCurrentYearActs(results);    
+      setLoading(false);
+    }
 
-  useEffect(() => {
-    getList();
-  }, [selectedYear]);
+    useEffect(() => {
+      console.log(`Current page index changed to ${currentPageIndex}`);
+      console.log(`Turning page: ${turnPage.current}`);
+      if (turnPage.current) {      
+        if (currentYearActPages[currentPageIndex]) {
+          setCurrentYearActs(currentYearActPages[currentPageIndex]);   
+          turnPage.current = false;   
+          return
+        } else {
+          getList();
+          turnPage.current = false;
+          return
+        }
+      } else {
+        return
+      }
+    }, [currentPageIndex]);
+
+    useEffect(() => {
+      console.log(`Year changed to ${selectedYear.value}`);    
+      getList(true);    
+    }, [preferences.pageSize,selectedYear.value]);
 
   return (
     <div>
-      <SpaceBetween size="m">
-      {/* <SearchBar setSearchItems={props.setSearchResults}/>    */}
+      <SpaceBetween size="m">      
       
       <Select
       selectedOption={selectedYear}
@@ -81,16 +125,14 @@ export default function Browse(props: {
       }}
       cardsPerRow={[{ cards: 1 }, { minWidth: 500, cards: 2 }]}
       items={currentYearActs}
-      loadingText="Loading results"
-      // selectionType="multi"
+      loadingText="Loading results"            
       trackBy="location"
       visibleSections={["content"]}
       empty={
         <Box margin={{ vertical: "xs" }} textAlign="center" color="inherit">
           <b>No results found</b>
         </Box>
-      }
-      // filter={<TextFilter filteringText={""} filteringPlaceholder="Search results" />}
+      }      
       header={
         <Header
           counter={
@@ -105,8 +147,9 @@ export default function Browse(props: {
       pagination={
         <Pagination
           currentPageIndex={currentPageIndex}
-          pagesCount={Math.ceil(currentYearActs.length / 6)}
-          onChange={({ detail }) => setCurrentPageIndex(detail.currentPageIndex)}
+          pagesCount={currentYearActPages.length}
+          openEnd={true}
+          onChange={({ detail }) => {setCurrentPageIndex(detail.currentPageIndex); turnPage.current = true}}
         />
       }
       loading={loading}
@@ -115,26 +158,15 @@ export default function Browse(props: {
           title="Preferences"
           confirmLabel="Confirm"
           cancelLabel="Cancel"
-          preferences={{
-            pageSize: 6,
-            // visibleContent: ["description"],
-          }}
+          preferences={preferences}
           pageSizePreference={{
             title: "Page size",
             options: [
-              { value: 6, label: "6 items" },
-              { value: 12, label: "12 items" },
+              { value: 10, label: "10 Acts" },
+              { value: 20, label: "20 Acts" },
             ],
           }}
-          // visibleContentPreference={{
-          //   title: "Select visible content",
-          //   options: [
-          //     {
-          //       label: "Card content",
-          //       options: [{ id: "description", label: " Description" }],
-          //     },
-          //   ],
-          // }}
+          onConfirm={({ detail }) => setPreferences({pageSize : detail.pageSize})}          
         />
       }
     />   
