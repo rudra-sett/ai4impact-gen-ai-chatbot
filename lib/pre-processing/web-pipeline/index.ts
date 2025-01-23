@@ -10,11 +10,14 @@ import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import { CfnKnowledgeBase, CfnDataSource } from 'aws-cdk-lib/aws-bedrock';
 
 interface WebPipelineStackProps {
   readonly outputBucket: Bucket;
   readonly yearQueue: Queue;
   readonly amendmentQueue: Queue;
+  readonly knowledgeBase: CfnKnowledgeBase;
+  readonly knowledgeBaseSource: CfnDataSource;
 }
 
 export class WebPipelineStack extends Construct {
@@ -38,7 +41,9 @@ export class WebPipelineStack extends Construct {
       environment: {
         "BUCKET": props.outputBucket.bucketName,
         "QUEUE": props.yearQueue.queueName,
-        "AMENDMENT_QUEUE": props.amendmentQueue.queueName
+        "AMENDMENT_QUEUE": props.amendmentQueue.queueName,
+        "KB" : props.knowledgeBase.attrKnowledgeBaseId,
+        "KB_SOURCE" : props.knowledgeBaseSource.attrDataSourceId
       },
       memorySize: 8192,
       timeout: cdk.Duration.seconds(900)
@@ -56,6 +61,13 @@ export class WebPipelineStack extends Construct {
       new iam.PolicyStatement({
         actions: ['s3:PutObject', 's3:GetObject', 's3:ListBucket'],
         resources: [props.outputBucket.bucketArn, `${props.outputBucket.bucketArn}/*`],
+      })
+    );
+
+    crawlYearFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['bedrock:*'],
+        resources: [props.knowledgeBase.attrKnowledgeBaseArn],
       })
     );
 

@@ -16,8 +16,11 @@ start_time = time.time()
 
 s3 = boto3.client('s3')
 sqs = boto3.resource('sqs')
+bedrock = boto3.client('bedrock-agent')
 
 amendment_queue = os.environ['AMENDMENT_QUEUE']
+knowledge_base = os.environ['KB']
+knowledge_base_source = os.environ['KB_SOURCE']
 
 def generate_amendments(page):
     pattern = r"chapter (\d+) of the acts of (\d{4})"
@@ -72,7 +75,7 @@ def process_year(year,start=1,amendments=False):
                 QueueName=queue_name,
             )
             queue.send_message(                
-                MessageBody=json.dumps({'year': year, 'start' : act}),
+                MessageBody=json.dumps({'year': year, 'start' : act, "amendment": True}),
                 MessageAttributes={},
                 MessageGroupId=str(year) + str(act),
                 MessageDeduplicationId=str(year) + str(act)
@@ -84,6 +87,22 @@ def process_year(year,start=1,amendments=False):
             page = pull_page(year,act)
             key = f"acts/{year}/chapter-{act}.txt"
             s3.put_object(Bucket=bucket_name, Key=key, Body=page.encode('utf-8'))
+            bedrock.ingest_knowledge_base_documents(
+                dataSourceId=knowledge_base_source,
+                documents=[
+                    {
+                        'content' : {
+                            'dataSourceType' : 'S3',
+                            's3': {
+                                's3Location': {
+                                    'uri': f's3://{bucket_name}/{key}'
+                                }
+                            }
+                        }
+                    }
+                ],
+                knowledgeBaseId=knowledge_base
+            )
             # if this was called by eventbridge, these are new acts and the database needs
             # to be updated with any amendments these acts may have
             if amendments:
@@ -116,7 +135,8 @@ def lambda_handler(event, context):
                 print("Starting from: "+ str(body['start']))
                 start = body['start']
                 year = body['year']
-                process_year(year,start)
+                check_amendments = 'amendment' in body
+                process_year(year,start,amendments=check_amendments)
             else:
                 process_year(year)
             

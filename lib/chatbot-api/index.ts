@@ -34,6 +34,7 @@ export class ChatBotApi extends Construct {
   // public readonly wsAPI: apigwv2.WebSocketApi;
   public readonly amendmentFunction: lambda.Function;
   public readonly insertAmendmentFunction: lambda.Function;
+  public readonly knowledgeBaseStack: KnowledgeBaseStack
 
 
   constructor(scope: Construct, id: string, props: ChatBotApiProps) {
@@ -49,6 +50,8 @@ export class ChatBotApi extends Construct {
       openSearch: openSearch,
       s3bucket: buckets.knowledgeBucket
     })
+
+    this.knowledgeBaseStack = knowledgeBase;
 
     const restBackend = new RestBackendAPI(this, "RestBackend", {})
     this.httpAPI = restBackend;
