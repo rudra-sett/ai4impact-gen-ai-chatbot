@@ -54,7 +54,7 @@ jobs:
 
     # Step 9: Upload the output file as an artifact (optional)
     - name: Upload Outputs as Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: stack-outputs
         path: stack-outputs.json
