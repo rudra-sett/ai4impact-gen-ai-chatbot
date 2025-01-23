@@ -32,7 +32,8 @@ export class GenAiMvpStack extends cdk.Stack {
       api : chatbotAPI
     })
     const dataStack = new DataStack(this, "DataPipeline", {
-      knowledgeBucket: chatbotAPI.filesBucket
+      knowledgeBucket: chatbotAPI.filesBucket,
+      amendmentFunction: chatbotAPI.amendmentFunction,
     });
     const indexingStack = new IndexingStack(this, "Indexing", {
       api: chatbotAPI

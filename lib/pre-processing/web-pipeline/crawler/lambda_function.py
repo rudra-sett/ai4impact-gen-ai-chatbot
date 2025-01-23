@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 import json
 import time
+import re
 
 
 # URL of the site to fetch
@@ -15,6 +16,26 @@ start_time = time.time()
 
 s3 = boto3.client('s3')
 sqs = boto3.resource('sqs')
+
+amendment_queue = os.environ['AMENDMENT_QUEUE']
+
+def generate_amendments(page):
+    pattern = r"chapter (\d+) of the acts of (\d{4})"
+    matches = re.findall(pattern, page, re.IGNORECASE)
+
+    # Print matches
+    for match in matches:
+        print(f"Chapter: {match[0]} Year: {match[1]}")
+        # Add to the queue
+        queue = sqs.get_queue_by_name(
+            QueueName=amendment_queue,
+        )
+        queue.send_message(
+            MessageBody=json.dumps({'year': match[1], 'chapter' : match[0]}),
+            MessageAttributes={},
+            MessageGroupId=match[1] + match[0],
+            MessageDeduplicationId=match[1] + match[0]
+        )
 
 
 def pull_page(year, act):
@@ -35,7 +56,7 @@ def pull_page(year, act):
         return title + "\n\n" + text
     
 
-def process_year(year,start=1):
+def process_year(year,start=1,amendments=False):
     
     error = False
     act = start
@@ -63,6 +84,10 @@ def process_year(year,start=1):
             page = pull_page(year,act)
             key = f"acts/{year}/chapter-{act}.txt"
             s3.put_object(Bucket=bucket_name, Key=key, Body=page.encode('utf-8'))
+            # if this was called by eventbridge, these are new acts and the database needs
+            # to be updated with any amendments these acts may have
+            if amendments:
+                generate_amendments(page)
             act += 1
             error_count = 0
         except urllib.error.HTTPError as e:
@@ -97,8 +122,16 @@ def lambda_handler(event, context):
             
     elif 'source' in event:
         year = str(datetime.now().year)
+        month = str(datetime.now().month)
+        day = datetime.now().day
+        # If it's currently earlier than January 14th, there's a good chance we missed acts from the end of the previous year
+        # so we'll crawl the previous year's acts as well
+        if month == '1' and day < 14:
+            print(f"Adjusting year to crawl {str(int(year) - 1)} instead of {year}")
+            year = str(int(year) - 1)            
         print(f"Got EventBridge trigger, now crawling {year}")
         # this came from eventbridge schedule, so we know for sure we want to crawl this year's acts only
         # TODO: scan the S3 bucket for the newest chapter we already have for this year so we know which specific chapter to start from
         # this will reduce duplicate crawls of the malegislature site though it's not actually a huge issue
-        process_year(year)
+        process_year(year,amendments=True)
+        # additionally, if running from eventbridge, we will need to add new acts to the amendment queue

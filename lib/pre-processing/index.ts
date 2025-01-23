@@ -1,13 +1,16 @@
 import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
+import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 
 import { PDFPipelineStack } from './pdf-pipeline'
 import { WebPipelineStack } from './web-pipeline'
 
 export interface DataStackProps {
   readonly knowledgeBucket: s3.Bucket; 
+  readonly amendmentFunction: lambda.Function;
 }
 
 export class DataStack extends Construct {  
@@ -37,10 +40,23 @@ export class DataStack extends Construct {
       fifo: true,
       visibilityTimeout: cdk.Duration.minutes(30)
     });    
+
+    const amendmentQueue = new sqs.Queue(this, 'AmendmentQueue',{
+      fifo: true,
+      visibilityTimeout: cdk.Duration.minutes(30),      
+    });
+
+    amendmentQueue.grantConsumeMessages(props.amendmentFunction);    
+
+    props.amendmentFunction.addEventSource(new SqsEventSource(amendmentQueue, {
+      batchSize: 1,
+      maxConcurrency: 2
+    }));
     
     const webPipeline = new WebPipelineStack(this, 'WebPipelineStack', {      
       yearQueue: yearQueue,
-      outputBucket: props.knowledgeBucket
+      outputBucket: props.knowledgeBucket,
+      amendmentQueue: amendmentQueue
     })
   
   }

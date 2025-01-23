@@ -14,6 +14,7 @@ import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 interface WebPipelineStackProps {
   readonly outputBucket: Bucket;
   readonly yearQueue: Queue;
+  readonly amendmentQueue: Queue;
 }
 
 export class WebPipelineStack extends Construct {
@@ -36,7 +37,8 @@ export class WebPipelineStack extends Construct {
       handler: 'lambda_function.lambda_handler',
       environment: {
         "BUCKET": props.outputBucket.bucketName,
-        "QUEUE": props.yearQueue.queueName
+        "QUEUE": props.yearQueue.queueName,
+        "AMENDMENT_QUEUE": props.amendmentQueue.queueName
       },
       memorySize: 8192,
       timeout: cdk.Duration.seconds(900)
@@ -46,7 +48,7 @@ export class WebPipelineStack extends Construct {
     crawlYearFunction.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['sqs:ReceiveMessage', 'sqs:DeleteMessage', 'sqs:GetQueueAttributes', 'sqs:GetQueueUrl', 'sqs:SendMessage'],
-        resources: [props.yearQueue.queueArn],
+        resources: [props.yearQueue.queueArn, props.amendmentQueue.queueArn],
       })
     );
 
