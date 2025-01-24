@@ -309,7 +309,8 @@ export class DataStack extends Construct {
       }),
     })
 
-    policy.attachToRole(amendmentRefreshMachine.role)
+    executionPolicy.attachToRole(amendmentRefreshMachine.role)
+    bedrockPolicy.attachToRole(amendmentRefreshMachine.role)
 
     const refreshQueuePollerRole = new Role(this, "RefreshQueuePollerRole", {
       assumedBy: new ServicePrincipal("scheduler.amazonaws.com"),
