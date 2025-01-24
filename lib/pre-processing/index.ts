@@ -297,9 +297,15 @@ export class DataStack extends Construct {
     props.api.amendmentFunction.grantInvoke(amendmentRefreshMachine)
     props.api.insertAmendmentFunction.grantInvoke(amendmentRefreshMachine)    
     
-    const policy = new Policy(this, 'sfn-map-policy', {
+    const executionPolicy = new Policy(this, 'sfn-map-policy', {
       document: new PolicyDocument({
         statements: [new PolicyStatement({ resources: [amendmentRefreshMachine.stateMachineArn], actions: ['states:*'] })],
+      }),
+    })
+
+    const bedrockPolicy = new Policy(this, 'bedrock-policy', {
+      document: new PolicyDocument({
+        statements: [new PolicyStatement({ resources: ["*"], actions: ['bedrock:ListIngestionJobs'] })],
       }),
     })
 
