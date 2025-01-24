@@ -59,7 +59,7 @@ def pull_page(year, act):
         return title + "\n\n" + text
     
 
-def process_year(year,start=1,amendments=False):
+def process_year(year,start=1,refresh=False):
     
     error = False
     act = start
@@ -75,7 +75,7 @@ def process_year(year,start=1,amendments=False):
                 QueueName=queue_name,
             )
             queue.send_message(                
-                MessageBody=json.dumps({'year': year, 'start' : act, "amendment": True}),
+                MessageBody=json.dumps({'year': year, 'start' : act, "refresh": True}),
                 MessageAttributes={},
                 MessageGroupId=str(year) + str(act),
                 MessageDeduplicationId=str(year) + str(act)
@@ -86,26 +86,10 @@ def process_year(year,start=1,amendments=False):
             print("Act: "+ str(act))
             page = pull_page(year,act)
             key = f"acts/{year}/chapter-{act}.txt"
-            s3.put_object(Bucket=bucket_name, Key=key, Body=page.encode('utf-8'))
-            bedrock.ingest_knowledge_base_documents(
-                dataSourceId=knowledge_base_source,
-                documents=[
-                    {
-                        'content' : {
-                            'dataSourceType' : 'S3',
-                            's3': {
-                                's3Location': {
-                                    'uri': f's3://{bucket_name}/{key}'
-                                }
-                            }
-                        }
-                    }
-                ],
-                knowledgeBaseId=knowledge_base
-            )
-            # if this was called by eventbridge, these are new acts and the database needs
-            # to be updated with any amendments these acts may have
-            if amendments:
+            s3.put_object(Bucket=bucket_name, Key=key, Body=page.encode('utf-8'))            
+            # if this is a refresh run for the current year, check the possibly new
+            # acts for any amendments and trigger refreshes to affected older acts
+            if refresh:
                 generate_amendments(page)
             act += 1
             error_count = 0
@@ -135,8 +119,14 @@ def lambda_handler(event, context):
                 print("Starting from: "+ str(body['start']))
                 start = body['start']
                 year = body['year']
-                check_amendments = 'amendment' in body
-                process_year(year,start,amendments=check_amendments)
+                refresh = 'refresh' in body
+                process_year(year,start,refresh=refresh)
+                if refresh:
+                    print("started bedrock ingestion!")
+                    bedrock.start_ingestion_job(
+                        dataSourceId=knowledge_base_source,
+                        knowledgeBaseId=knowledge_base
+                    )
             else:
                 process_year(year)
             
@@ -153,5 +143,10 @@ def lambda_handler(event, context):
         # this came from eventbridge schedule, so we know for sure we want to crawl this year's acts only
         # TODO: scan the S3 bucket for the newest chapter we already have for this year so we know which specific chapter to start from
         # this will reduce duplicate crawls of the malegislature site though it's not actually a huge issue
-        process_year(year,amendments=True)
-        # additionally, if running from eventbridge, we will need to add new acts to the amendment queue
+        process_year(year,refresh=True)
+        # start a bedrock ingestion job - this will block the state machine until it's done
+        print("started bedrock ingestion!")
+        bedrock.start_ingestion_job(
+            dataSourceId=knowledge_base_source,
+            knowledgeBaseId=knowledge_base
+        )        

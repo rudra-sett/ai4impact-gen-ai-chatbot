@@ -60,9 +60,37 @@ export class DataStack extends Construct {
 
     const amendmentRefreshMachineDefinition = {
       "Comment": "Processes messages from the AmendmentsRefreshQueue to refresh amendment lists and chapter versions",
-      "StartAt": "Read messages from SQS queue",
+      "StartAt": "ListIngestionJobs",
       "QueryLanguage": "JSONata",
       "States": {
+        "ListIngestionJobs": {
+          "Type": "Task",
+          "Arguments": {
+            "DataSourceId": "PCOVSPRXYE",
+            "KnowledgeBaseId": props.api.knowledgeBaseStack.knowledgeBase.attrKnowledgeBaseId,
+            "Filters": [
+              {
+                "Attribute": "STATUS",
+                "Operator": "EQ",
+                "Values": [
+                  "IN_PROGRESS"
+                ]
+              }
+            ]
+          },
+          "Resource": "arn:aws:states:::aws-sdk:bedrockagent:listIngestionJobs",
+          "Next": "Is Bedrock still ingesting documents?"
+        },
+        "Is Bedrock still ingesting documents?": {
+          "Type": "Choice",
+          "Choices": [
+            {
+              "Next": "Finish",
+              "Condition": "{% $exists($states.input.IngestionJobSummaries[0]) %}"
+            }
+          ],
+          "Default": "Read messages from SQS queue"
+        },
         "Read messages from SQS queue": {
           "Type": "Task",
           "Resource": "arn:aws:states:::aws-sdk:sqs:receiveMessage",
@@ -267,13 +295,15 @@ export class DataStack extends Construct {
 
     amendmentQueue.grantConsumeMessages(amendmentRefreshMachine)
     props.api.amendmentFunction.grantInvoke(amendmentRefreshMachine)
-    props.api.insertAmendmentFunction.grantInvoke(amendmentRefreshMachine)
-
-    const policy = new Policy(this, 'statemachine-policy', {
+    props.api.insertAmendmentFunction.grantInvoke(amendmentRefreshMachine)    
+    
+    const policy = new Policy(this, 'sfn-map-policy', {
       document: new PolicyDocument({
         statements: [new PolicyStatement({ resources: [amendmentRefreshMachine.stateMachineArn], actions: ['states:*'] })],
       }),
     })
+
+    policy.attachToRole(amendmentRefreshMachine.role)
 
     const refreshQueuePollerRole = new Role(this, "RefreshQueuePollerRole", {
       assumedBy: new ServicePrincipal("scheduler.amazonaws.com"),
