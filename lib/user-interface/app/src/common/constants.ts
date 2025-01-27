@@ -28,16 +28,18 @@ export const languageList = [
 ];
 
 export const feedbackCategories = [
-  {label: "Acts", value:"acts", disabled: false},
-  {label: "Resolves", value:"resolves", disabled: false},  
+  {label: "General", value:"general", disabled: false},
+  {label: "Appearance", value:"appearance", disabled: false},  
+  {label: "Accuracy", value:"accuracy", disabled: false},
+  {label: "Unsatisfactory", value:"unsatisfactory", disabled: false},
+  {label: "Other", value:"other", disabled: false}
 ]
 
 export const feedbackTypes = [
   {label: "Accuracy", value:"accuracy", disabled: false},
-  {label: "Relevance", value:"relevance", disabled: false},
-  {label: "Clarity", value:"clarity", disabled: false},
-  {label: "Formatting", value:"completeness", disabled: false},
-  {label: "Incomplete", value:"incomplete", disabled: false},
+  {label: "Functionality", value:"functionality", disabled: false},
+  {label: "Bug", value:"bug", disabled: false},
+  {label: "Suggestion", value:"suggestion", disabled: false},
   {label: "Other", value:"other", disabled: false}
 ]
 

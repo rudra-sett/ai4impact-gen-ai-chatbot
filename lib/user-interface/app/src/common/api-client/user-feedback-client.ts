@@ -106,4 +106,26 @@ export class UserFeedbackClient {
     });
 
   }
+
+  async sendToolFeedback(feedbackData) {
+    console.log(feedbackData);
+    try{
+      const auth = await Utils.authenticate();
+      const response = await fetch(this.API + '/tool-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': auth,
+        },
+        body: JSON.stringify({ feedbackData })
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to send feedback: ${response.statusText}`);
+      }
+  
+      console.log('Feedback submitted successfully:', await response.json());
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+    }
+  }
 }
