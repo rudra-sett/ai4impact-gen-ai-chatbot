@@ -25,11 +25,11 @@ def lambda_handler(event, context):
             }
 
         # Prepare the DynamoDB item
-            item = {
-            'type': type_,
-            'topic': topic,
-            'message': message,
-            'timestamp': datetime.utcnow().isoformat()
+        item = {
+        'type': type_,
+        'topic': topic,
+        'message': message,
+        'timestamp': datetime.now().isoformat()
         }
 
         # Store the item in DynamoDB

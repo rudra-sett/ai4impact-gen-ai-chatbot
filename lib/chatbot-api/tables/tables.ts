@@ -70,8 +70,8 @@ export class TableStack extends Stack {
       });
 
       toolFeedbackTable.addGlobalSecondaryIndex({
-        indexName: 'CreatedAtIndex',
-        partitionKey: { name: 'CreatedAt', type: AttributeType.STRING },
+        indexName: 'TimeStampIndex',
+        partitionKey: { name: 'timestamp', type: AttributeType.STRING },
         projectionType: ProjectionType.ALL,
       });
   

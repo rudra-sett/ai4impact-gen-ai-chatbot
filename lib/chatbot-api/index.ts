@@ -69,7 +69,7 @@ export class ChatBotApi extends Construct {
         knowledgeBase: knowledgeBase.knowledgeBase,
         knowledgeBaseSource: knowledgeBase.dataSource,
         openSearch: openSearch.openSearchCollection,
-        toolfeedbackTable: tables.toolFeedbackTable,
+        toolFeedbackTable: tables.toolFeedbackTable,
         
       })
 

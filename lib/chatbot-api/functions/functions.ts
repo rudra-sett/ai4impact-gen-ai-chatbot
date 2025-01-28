@@ -22,7 +22,7 @@ interface LambdaFunctionStackProps {
   readonly knowledgeBase: bedrock.CfnKnowledgeBase;
   readonly knowledgeBaseSource: bedrock.CfnDataSource;
   readonly openSearch: opensearchserverless.CfnCollection;
-  readonly toolfeedbackTable: Table;
+  readonly toolFeedbackTable: Table;
 }
 
 export class LambdaFunctionStack extends cdk.Stack {
@@ -35,9 +35,9 @@ export class LambdaFunctionStack extends cdk.Stack {
   public readonly syncKBFunction: lambda.Function;
   public readonly retrieveActFunction: lambda.Function;
   public readonly searchLawsFunction: lambda.Function;
-  public readonly amendmentsFunction : lambda.Function;
-  public readonly insertAmendmentFunction : lambda.Function;
-  public readonly listActsFunction : lambda.Function;
+  public readonly amendmentsFunction: lambda.Function;
+  public readonly insertAmendmentFunction: lambda.Function;
+  public readonly listActsFunction: lambda.Function;
   public readonly toolFeedback: lambda.Function;
 
 
@@ -65,17 +65,17 @@ export class LambdaFunctionStack extends cdk.Stack {
     this.listActsFunction = listActsFunction;
 
     const insertAmendmentFunction = new lambda.Function(scope, 'InsertAmendmentFunction', {
-      runtime: lambda.Runtime.PYTHON_3_12, 
+      runtime: lambda.Runtime.PYTHON_3_12,
       code: lambda.Code.fromAsset(path.join(__dirname, 'insert-amendment'), {
         bundling: {
           image: lambda.Runtime.PYTHON_3_12.bundlingImage,
           command: [
             'bash', '-c',
-              'pip install -r requirements.txt -t /asset-output && cp -au . /asset-output'
+            'pip install -r requirements.txt -t /asset-output && cp -au . /asset-output'
           ],
         },
-      }), 
-      handler: 'lambda_function.lambda_handler', 
+      }),
+      handler: 'lambda_function.lambda_handler',
       environment: {
         "BUCKET": props.knowledgeBucket.bucketName,
         "DDB_TABLE_NAME": props.amendmentTable.tableName
@@ -96,7 +96,7 @@ export class LambdaFunctionStack extends cdk.Stack {
       actions: [
         's3:*'
       ],
-      resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*",props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*" ]
+      resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*", props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*"]
     }));
 
     insertAmendmentFunction.addToRolePolicy(new iam.PolicyStatement({
@@ -149,7 +149,7 @@ export class LambdaFunctionStack extends cdk.Stack {
       actions: [
         's3:*'
       ],
-      resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*",props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*"]
+      resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*", props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*"]
     }));
 
     this.retrieveActFunction = retrieveActFunction;
@@ -198,7 +198,7 @@ export class LambdaFunctionStack extends cdk.Stack {
         },
       }), // Points to the lambda directory
       handler: 'index.handler', // Points to the 'hello' file in the lambda directory
-      environment: {                        
+      environment: {
         "OPENSEARCH_ENDPOINT": props.openSearch.attrCollectionEndpoint,
         "AMENDMENT_TABLE": props.amendmentTable.tableName
       },
@@ -274,7 +274,7 @@ export class LambdaFunctionStack extends cdk.Stack {
     }));
 
     this.amendmentsFunction = amendmentFunction;
-  
+
     // Define the Lambda function resource
     const websocketAPIFunction = new lambda.Function(scope, 'ChatHandlerFunction', {
       runtime: lambda.Runtime.NODEJS_20_X, // Choose any supported Node.js runtime
@@ -516,27 +516,19 @@ export class LambdaFunctionStack extends cdk.Stack {
     this.uploadS3Function = uploadS3APIHandlerFunction;
 
 
-    const toolFeedbackFunction = new lambda.Function(this, 'FeedbackFunction', {
+    const toolFeedbackFunction = new lambda.Function(scope, 'ToolFeedbackFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
       code: lambda.Code.fromAsset(path.join(__dirname, 'tool-feedback')),
       handler: 'lambda_function.lambda_handler',
       environment: {
-        "TOOL_FEEDBACK_TABLE": props.feedbackTable.tableName,
+        "TOOL_FEEDBACK_TABLE": props.toolFeedbackTable.tableName,
       },
       timeout: cdk.Duration.seconds(300)
     });
 
-    props.feedbackTable.grantWriteData(toolFeedbackFunction);
+    props.toolFeedbackTable.grantWriteData(toolFeedbackFunction);
 
-    toolFeedbackFunction.addToRolePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'dynamodb:*'
-      ],
+    this.toolFeedback = toolFeedbackFunction;
 
-      resources: [props.feedbackTable.tableArn]
-  }));
-  this.toolFeedback = toolFeedbackFunction;
-
-}
+  }
 }
