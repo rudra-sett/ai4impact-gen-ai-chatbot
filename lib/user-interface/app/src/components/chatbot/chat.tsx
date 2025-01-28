@@ -32,11 +32,8 @@ export default function Chat(props: {
     loading: typeof props.sessionId !== "undefined",
   });
 
-  const { notifications, addNotification } = useNotifications();
   const [messageHistory, setMessageHistory] = useState<ChatBotHistoryItem[]>([]);
-  const [year, setYear] = useState(props.year);
-  const [act, setAct] = useState(props.chapter);
-  const [actLoading, setActLoading] = useState(false);
+
 
   useEffect(() => {
     if (!appContext) return;
@@ -118,27 +115,10 @@ export default function Chat(props: {
     await apiClient.userFeedback.sendUserFeedback(feedbackData);
   };
 
-  useEffect(() => {
-    if (!appContext) return;
-    (async () => {
-      setActLoading(true);
-      const apiClient = new ApiClient(appContext);
-      const text = await apiClient.acts.getAct(props.year, props.chapter);
-      setYear(props.year);
-      setAct(props.chapter);
-      props.setActText(text);
-      // We rely on Playground to fetch and highlight amendments, so no diff logic here.
-      setActLoading(false);
-    })();
-  }, [props.year, props.chapter]);
-
-  const getAct = () => {
-    props.changeAct(year, act);
-  };
 
   return (
-    <div>
-      <ColumnLayout columns={2}>
+    // <div>
+    //   <ColumnLayout columns={2}>
         <div className={styles.chat_container}>
           <SpaceBetween direction="vertical" size="m">
             {messageHistory.length == 0 && !session?.loading && (
@@ -178,40 +158,6 @@ export default function Chat(props: {
             />
           </div>
         </div>
-        <div>
-          <div className={styles.chat_container}>
-            {actLoading ? (
-              <Box textAlign="center">
-                <StatusIndicator type="loading">Loading law</StatusIndicator>
-              </Box>
-            ) : (
-              // Now the actText may contain HTML tags due to diff highlighting
-              <Box textAlign="center">
-                <TextContent>
-                  <div dangerouslySetInnerHTML={{ __html: props.actText }} />
-                </TextContent>
-              </Box>
-            )}
-          </div>
-          <div className={styles.input_container}>
-            <SpaceBetween direction="horizontal" size="xs">
-              <Input
-                onChange={({ detail }) => setYear(detail.value)}
-                value={year}
-                placeholder="Year"
-              />
-              <Input
-                onChange={({ detail }) => setAct(detail.value)}
-                value={act}
-                placeholder="Chapter"
-              />
-              <Button variant="primary" onClick={getAct}>
-                Retrieve
-              </Button>
-            </SpaceBetween>
-          </div>
-        </div>
-      </ColumnLayout>
-    </div>
+   
   );
 }

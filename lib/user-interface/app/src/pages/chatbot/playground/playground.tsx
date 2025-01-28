@@ -10,6 +10,7 @@ import { ApiClient } from "../../../common/api-client/api-client";
 import { AppContext } from "../../../common/app-context";
 import diff_match_patch from "diff-match-patch";
 import Browse from "../../../components/browse/browse";
+import Retrieve from "../../../components/retriever/retriever";
 
 export default function Playground() {
   const { sessionId, chapter, year } = useParams();
@@ -33,7 +34,7 @@ export default function Playground() {
   const [loading, setLoading] = useState(false);
   const [insertionLoading, setInsertionLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState("chat");
+  const [activeTab, setActiveTab] = useState("retrieve");
   
   const [activeHref, setActiveHref] = useState(window.location.pathname);
 
@@ -202,11 +203,12 @@ export default function Playground() {
         <div>
           <Tabs
             tabs={[
+      
               {
-                label: "Chat",
-                id: "chat",
+                label: "Retrieve",
+                id: "retrieve",
                 content: (
-                  <Chat
+                  <Retrieve
                     actText={actText}
                     setActText={setActText}
                     sessionId={sessionId}
@@ -218,6 +220,7 @@ export default function Playground() {
                   />
                 )
               },
+        
               {
                 label: "Search",
                 id: "search",
@@ -236,7 +239,25 @@ export default function Playground() {
                 content: (
                   <Browse sessionId={sessionId} changeTab={setActiveTab}/>                  
                 )
+              },
+              {
+                label: "Chat",
+                id: "chat",
+                content: (
+                  <Chat
+                    //actText={actText}
+                    //setActText={setActText}
+                    sessionId={sessionId}
+                    //setAmendments={setAmendments}
+                    //setLoading={setLoading}
+                    //chapter={chapter}
+                    //year={year}
+                    //changeAct={changeActPage}
+                  />
+                )
               }
+            
+  
             ]}
             activeTabId={activeTab}
             onChange={({ detail: { activeTabId } }) => {

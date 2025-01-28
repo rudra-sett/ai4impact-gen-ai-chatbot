@@ -82,6 +82,13 @@
   container-name: input_container;
 }
 
+.centered_input {
+  position: sticky;
+  bottom: 0;
+  margin-left: 500px;
+  margin-right: 500px;
+}
+
 .browse_control_container {
   position: fixed;
   bottom: 40px;
