@@ -139,9 +139,10 @@ const FeedbackModal = React.memo(({
           style={{
             width: "100%",
             padding: "8px",
-            fontSize: "14px",
+            fontSize: "0.5rem",
             fontFamily: "Arial, sans-serif",
             borderColor: "#ccc",
+            resize: "none"
           }}
         />
       </Box>
@@ -161,14 +162,15 @@ const FeedbackTab = React.memo(({ onFeedbackDown, onFeedbackUp }: FeedbackTabPro
       display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center"
     }}>
       <div style={{
-        border: "0.01rem outset #000716",
+        // border: "0.01rem outset #000716",
         borderRadius: "10px",
         display: "inline-block",
         padding: "4px 8px",
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
-        textAlign: "center"
+        textAlign: "center",
+        
       }}>
         <Box>
           <h4 style={{ fontFamily: "Calibri, sans-serif", fontWeight: "500", fontSize: 15 }}>

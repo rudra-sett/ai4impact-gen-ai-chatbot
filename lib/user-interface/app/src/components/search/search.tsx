@@ -29,7 +29,7 @@ export default function Search(props: {
       cardDefinition={{
         header: (item) => (
           
-          <Link onClick={() => { props.changeTab("chat")}} to={`/chatbot/playground/${props.sessionId}/${item.chapter.split(" ").slice(-1)}/${item.chapter.split(" ")[1]}`}>
+          <Link onClick={() => { props.changeTab("retrieve")}} to={`/chatbot/playground/${props.sessionId}/${item.chapter.split(" ").slice(-1)}/${item.chapter.split(" ")[1]}`}>
                   {item.chapter}
                   
               </Link>            

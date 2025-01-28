@@ -83,10 +83,9 @@
 }
 
 .centered_input {
-  position: sticky;
-  bottom: 0;
-  margin-left: 500px;
-  margin-right: 500px;
+  max-width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .browse_control_container {

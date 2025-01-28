@@ -109,7 +109,7 @@ export default function Browse(props: {
       cardDefinition={{
         header: (item) => (
           
-          <Link onClick={() => { props.changeTab("chat")}} to={`/chatbot/playground/${props.sessionId}/${item.year}/${item.chapter_number}`}>
+          <Link onClick={() => { props.changeTab("retrieve")}} to={`/chatbot/playground/${props.sessionId}/${item.year}/${item.chapter_number}`}>
                   {item.name}
                   
               </Link>            

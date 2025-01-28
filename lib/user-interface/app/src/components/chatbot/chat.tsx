@@ -16,14 +16,7 @@ import { CHATBOT_NAME } from "../../common/constants";
 import { useNotifications } from "../notif-manager";
 
 export default function Chat(props: {
-  sessionId?: string,
-  setAmendments: React.Dispatch<React.SetStateAction<any[]>>,
-  setLoading: React.Dispatch<React.SetStateAction<boolean>>,
-  chapter: string,
-  year: string,
-  actText: string,
-  setActText: React.Dispatch<React.SetStateAction<string>>
-  changeAct: (year: string, chapter: string) => void
+  sessionId?: string,    
 }) {
   const appContext = useContext(AppContext);
   const [running, setRunning] = useState<boolean>(true);
@@ -33,7 +26,7 @@ export default function Chat(props: {
   });
 
   const [messageHistory, setMessageHistory] = useState<ChatBotHistoryItem[]>([]);
-
+  const { addNotification, removeNotification } = useNotifications();
 
   useEffect(() => {
     if (!appContext) return;

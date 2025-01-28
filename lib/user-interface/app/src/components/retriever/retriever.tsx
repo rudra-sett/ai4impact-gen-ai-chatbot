@@ -55,22 +55,33 @@ export default function Retrieve(props: {
               </Box>
             )}
           </div>
-          <div className={styles.centered_input} >
+          {/* <div className={styles.centered_input} > */}
           <div className={styles.input_container} >
+            <div className={styles.centered_input}>
             <SpaceBetween direction="horizontal" size="m">
+              <div>
+              <label htmlFor="year-input" style={{ marginLeft: "1px", fontWeight: "bold" }}>Year</label>
               <Input
+                id="year-input"
                 onChange={({ detail }) => setYear(detail.value)}
                 value={year}
                 placeholder="Year"
               />
+              </div>
+              <div>
+              <label htmlFor="chapter-input" style={{ marginLeft: "1px", fontWeight: "bold" }}>Chapter</label>
               <Input
+                id="chapter-input"
                 onChange={({ detail }) => setAct(detail.value)}
                 value={act}
                 placeholder="Chapter"
               />
-              <Button variant="primary" onClick={getAct}>
-                Retrieve
-              </Button>
+              </div>
+                <div style={{ alignContent: "end", height: "100%" }}>
+                <Button variant="primary" onClick={getAct}>
+                  Retrieve
+                </Button>
+                </div>
             </SpaceBetween>
           </div>
           </div>
