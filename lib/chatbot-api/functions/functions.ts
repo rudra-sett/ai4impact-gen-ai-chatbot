@@ -21,7 +21,8 @@ interface LambdaFunctionStackProps {
   readonly knowledgeBucket: s3.Bucket;
   readonly knowledgeBase: bedrock.CfnKnowledgeBase;
   readonly knowledgeBaseSource: bedrock.CfnDataSource;
-  readonly openSearch: opensearchserverless.CfnCollection
+  readonly openSearch: opensearchserverless.CfnCollection;
+  readonly toolfeedbackTable: Table;
 }
 
 export class LambdaFunctionStack extends cdk.Stack {
@@ -37,6 +38,8 @@ export class LambdaFunctionStack extends cdk.Stack {
   public readonly amendmentsFunction : lambda.Function;
   public readonly insertAmendmentFunction : lambda.Function;
   public readonly listActsFunction : lambda.Function;
+  public readonly toolFeedback: lambda.Function;
+
 
   constructor(scope: Construct, id: string, props: LambdaFunctionStackProps) {
     super(scope, id);
@@ -512,5 +515,28 @@ export class LambdaFunctionStack extends cdk.Stack {
     }));
     this.uploadS3Function = uploadS3APIHandlerFunction;
 
-  }
+
+    const toolFeedbackFunction = new lambda.Function(this, 'FeedbackFunction', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      code: lambda.Code.fromAsset(path.join(__dirname, 'tool-feedback')),
+      handler: 'lambda_function.lambda_handler',
+      environment: {
+        "TOOL_FEEDBACK_TABLE": props.feedbackTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(300)
+    });
+
+    props.feedbackTable.grantWriteData(toolFeedbackFunction);
+
+    toolFeedbackFunction.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'dynamodb:*'
+      ],
+
+      resources: [props.feedbackTable.tableArn]
+  }));
+  this.toolFeedback = toolFeedbackFunction;
+
+}
 }

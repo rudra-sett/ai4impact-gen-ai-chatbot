@@ -68,8 +68,9 @@ export class ChatBotApi extends Construct {
         knowledgeBucket: buckets.knowledgeBucket,
         knowledgeBase: knowledgeBase.knowledgeBase,
         knowledgeBaseSource: knowledgeBase.dataSource,
-        openSearch: openSearch.openSearchCollection
-
+        openSearch: openSearch.openSearchCollection,
+        toolfeedbackTable: tables.toolFeedbackTable,
+        
       })
 
     this.amendmentFunction = lambdaFunctions.amendmentsFunction;
@@ -169,6 +170,15 @@ export class ChatBotApi extends Construct {
       path: "/user-feedback/download-feedback",
       methods: [apigwv2.HttpMethod.POST],
       integration: feedbackAPIDownloadIntegration,
+      authorizer: httpAuthorizer,
+    })
+
+
+    const toolFeedbackAPIIntegration = new HttpLambdaIntegration('ToolFeedbackAPIIntegration', lambdaFunctions.toolFeedback);
+    restBackend.restAPI.addRoutes({
+      path: "/tool-feedback",
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.POST, apigwv2.HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration('ToolFeedbackAPIIntegration', lambdaFunctions.toolFeedback),
       authorizer: httpAuthorizer,
     })
 

@@ -6,6 +6,7 @@ export class TableStack extends Stack {
   public readonly historyTable : Table;
   public readonly feedbackTable : Table;
   public readonly amendmentTable : Table;
+  public readonly toolFeedbackTable : Table;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
@@ -62,5 +63,18 @@ export class TableStack extends Stack {
     });
 
     this.amendmentTable = amendmentTrackingTable;
+    
+    const toolFeedbackTable = new Table(scope, 'ToolFeedbackTable', {
+        partitionKey: { name: 'type', type: AttributeType.STRING },
+        sortKey: { name: 'timestamp', type: AttributeType.STRING },
+      });
+
+      toolFeedbackTable.addGlobalSecondaryIndex({
+        indexName: 'CreatedAtIndex',
+        partitionKey: { name: 'CreatedAt', type: AttributeType.STRING },
+        projectionType: ProjectionType.ALL,
+      });
+  
+      this.toolFeedbackTable = toolFeedbackTable;
   }
 }
