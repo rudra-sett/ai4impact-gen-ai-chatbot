@@ -22,7 +22,6 @@ export class S3BucketStack extends cdk.Stack {
     });
 
     this.feedbackBucket = new s3.Bucket(scope, 'FeedbackDownloadBucket', {
-      bucketName: 'feedback-download',
       versioned: true,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,

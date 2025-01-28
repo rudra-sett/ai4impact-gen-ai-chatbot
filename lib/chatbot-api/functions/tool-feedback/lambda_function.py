@@ -1,9 +1,11 @@
 import json
 import boto3
+import os
 from datetime import datetime
 
 # Initialize the DynamoDB client
-dynamodb = boto3.client('dynamodb', region_name='us-east-1')
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+table = dynamodb.Table(os.environ.get('TOOL_FEEDBACK_TABLE'))
 
 def lambda_handler(event, context):
     try:
@@ -23,18 +25,15 @@ def lambda_handler(event, context):
             }
 
         # Prepare the DynamoDB item
-        params = {
-            'TableName': 'UserFeedbackTableGLOTool',
-            'Item': {
-                'type': {'S': type_},
-                'topic': {'S': topic},
-                'message': {'S': message},
-                'timestamp': {'S': datetime.utcnow().isoformat()}
-            }
+            item = {
+            'type': type_,
+            'topic': topic,
+            'message': message,
+            'timestamp': datetime.utcnow().isoformat()
         }
 
         # Store the item in DynamoDB
-        dynamodb.put_item(**params)
+        table.put_item(Item=item)
 
         return {
             'statusCode': 200,
