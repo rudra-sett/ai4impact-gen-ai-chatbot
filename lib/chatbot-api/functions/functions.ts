@@ -517,7 +517,7 @@ export class LambdaFunctionStack extends cdk.Stack {
 
 
     const toolFeedbackFunction = new lambda.Function(scope, 'ToolFeedbackFunction', {
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.PYTHON_3_12,
       code: lambda.Code.fromAsset(path.join(__dirname, 'tool-feedback')),
       handler: 'lambda_function.lambda_handler',
       environment: {
