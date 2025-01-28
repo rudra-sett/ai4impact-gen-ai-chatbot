@@ -11,9 +11,10 @@ def lambda_handler(event, context):
     try:
         # Parse the event body
         body = json.loads(event.get('body', '{}'))
-        type_ = body.get('type')
-        topic = body.get('topic')
-        message = body.get('message')
+        feedback_data = body.get('feedbackData', {})
+        type_ = feedback_data.get('type')
+        topic = feedback_data.get('topic')
+        message = feedback_data.get('message')
 
         # Validate required fields
         if not type_ or not topic or not message:
