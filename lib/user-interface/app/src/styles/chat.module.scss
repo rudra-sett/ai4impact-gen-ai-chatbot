@@ -82,10 +82,28 @@
   container-name: input_container;
 }
 
+.retrieval_input_container {
+  position: sticky;
+  bottom: 0;
+  padding-bottom: awsui.$space-scaled-l;
+  // padding-top: awsui.$space-scaled-xxl;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    awsui.$color-background-container-content 20%
+  );
+  margin-left: -8px;
+  margin-right: -8px;
+  container-type: inline-size;
+  container-name: retrieval_input_container;
+}
+
 .centered_input {
   max-width: fit-content;
   margin-left: auto;
   margin-right: auto;
+  margin-top: 5px;
+  margin-bottom: 5px;
 }
 
 .browse_control_container {
