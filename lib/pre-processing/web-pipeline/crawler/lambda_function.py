@@ -12,7 +12,7 @@ import re
 url = 'https://malegislature.gov/Laws/SessionLaws/Acts/'
 bucket_name = os.environ['BUCKET']
 queue_name = os.environ['QUEUE']
-start_time = time.time()
+start_time = 0
 
 s3 = boto3.client('s3')
 sqs = boto3.resource('sqs')
@@ -69,13 +69,19 @@ def process_year(year,start=1,refresh=False):
 
         # if this has been running for over 14 minutes already,
         # stop crawling and add this to the queue for a new Lambda instance to continue
-
-        if time.time() - start_time > 840:
+        print("time: " + str(time.perf_counter() - start_time))
+        if time.perf_counter() - start_time > 840.0:
             queue = sqs.get_queue_by_name(
                 QueueName=queue_name,
             )
+            message_body = {
+                'year': year,
+                'start': act,                
+            }
+            if refresh:
+                message_body['refresh'] = True
             queue.send_message(                
-                MessageBody=json.dumps({'year': year, 'start' : act, "refresh": True}),
+                MessageBody=json.dumps(message_body),
                 MessageAttributes={},
                 MessageGroupId=str(year) + str(act),
                 MessageDeduplicationId=str(year) + str(act)
@@ -110,15 +116,16 @@ def process_year(year,start=1,refresh=False):
 def lambda_handler(event, context):
     # go through each year, though technically this should only receive one at a time
     print(event)
-    
+    global start_time
+    start_time = time.perf_counter()
     if 'Records' in event:
         for message in event['Records']:
             body = json.loads(message['body'])
             print("Year: "+ str(body['year']))
+            year = body['year']
             if 'start' in body:
                 print("Starting from: "+ str(body['start']))
-                start = body['start']
-                year = body['year']
+                start = body['start']                
                 refresh = 'refresh' in body
                 process_year(year,start,refresh=refresh)
                 if refresh:
