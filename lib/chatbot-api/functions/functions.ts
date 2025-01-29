@@ -96,7 +96,7 @@ export class LambdaFunctionStack extends cdk.Stack {
       actions: [
         's3:*'
       ],
-      resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*", props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*"]
+      resources: [props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*"]
     }));
 
     insertAmendmentFunction.addToRolePolicy(new iam.PolicyStatement({
@@ -149,7 +149,7 @@ export class LambdaFunctionStack extends cdk.Stack {
       actions: [
         's3:*'
       ],
-      resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*", props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*"]
+      resources: [props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*"]
     }));
 
     this.retrieveActFunction = retrieveActFunction;
@@ -305,7 +305,8 @@ export class LambdaFunctionStack extends cdk.Stack {
             If the user directly asks what acts amend a specific act, resolve, or general law, use the tool for that as well.`,
         'KB_ID': props.knowledgeBase.attrKnowledgeBaseId,
         "OPENSEARCH_ENDPOINT": props.openSearch.attrCollectionEndpoint,
-        "AMENDMENT_TABLE": props.amendmentTable.tableName
+        "AMENDMENT_TABLE": props.amendmentTable.tableName,
+        "BUCKET_NAME": props.knowledgeBucket.bucketName,
       },
       timeout: cdk.Duration.seconds(300)
     });
@@ -340,7 +341,7 @@ export class LambdaFunctionStack extends cdk.Stack {
         's3:GetObject',
         's3:ListBucket'
       ],
-      resources: ["arn:aws:s3:::glo-processed", "arn:aws:s3:::glo-processed/*"]
+      resources: [props.knowledgeBucket.bucketArn, props.knowledgeBucket.bucketArn + "/*"]
     }));
 
     websocketAPIFunction.addToRolePolicy(new iam.PolicyStatement({

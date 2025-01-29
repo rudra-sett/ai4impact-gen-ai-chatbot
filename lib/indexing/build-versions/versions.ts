@@ -195,7 +195,7 @@ export class VersionedActsStack extends Construct {
     
     const policy = new Policy(this, 'sfn-map-policy', {
       document: new PolicyDocument({
-        statements: [new PolicyStatement({ resources: [stateMachine.stateMachineArn], actions: ['states:StartExecution'] })],
+        statements: [new PolicyStatement({ resources: [stateMachine.stateMachineArn], actions: ['states:*'] })],
       }),
     })
 

@@ -66,7 +66,7 @@ export class DataStack extends Construct {
         "ListIngestionJobs": {
           "Type": "Task",
           "Arguments": {
-            "DataSourceId": "PCOVSPRXYE",
+            "DataSourceId": props.api.knowledgeBaseStack.dataSource.attrDataSourceId,
             "KnowledgeBaseId": props.api.knowledgeBaseStack.knowledgeBase.attrKnowledgeBaseId,
             "Filters": [
               {
