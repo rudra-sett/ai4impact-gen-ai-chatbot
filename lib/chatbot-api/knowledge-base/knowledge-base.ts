@@ -95,6 +95,7 @@ export class KnowledgeBaseStack extends cdk.Stack {
         type: 'S3',
         s3Configuration: {
           bucketArn: props.s3bucket.bucketArn,
+          inclusionPrefixes: ['acts/'],
         },
 
       },
