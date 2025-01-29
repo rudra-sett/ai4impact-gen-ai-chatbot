@@ -109,8 +109,8 @@ export class KnowledgeBaseStack extends cdk.Stack {
 
           // the properties below are optional
           fixedSizeChunkingConfiguration: {
-            maxTokens: 300,
-            overlapPercentage: 10,
+            maxTokens: 1024,
+            overlapPercentage: 20,
           },
 
           // hierarchicalChunkingConfiguration: {
