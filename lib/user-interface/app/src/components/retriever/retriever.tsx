@@ -1,6 +1,6 @@
 import { Dispatch, memo, SetStateAction, useContext, useEffect, useState } from "react";
 
-import { SpaceBetween, StatusIndicator, Alert, ColumnLayout, Input, Button, TextContent, Box, SelectProps, Modal, Select } from "@cloudscape-design/components";
+import { SpaceBetween, StatusIndicator, Alert, ColumnLayout, Input, Button, TextContent, Box, SelectProps, Modal, Select, Spinner } from "@cloudscape-design/components";
 import { AppContext } from "../../common/app-context";
 import { ApiClient } from "../../common/api-client/api-client";
 import styles from "../../styles/chat.module.scss";
@@ -17,6 +17,11 @@ export default function Retrieve(props: {
   actText: string,
   setActText: React.Dispatch<React.SetStateAction<string>>
   changeAct: (year: string, chapter: string) => void
+  showConformed: boolean
+  amendmentList: any[]
+  applyAmendment: (amendingYear: string, amendingChapter: string) => Promise<void>
+  originalActText: string
+  insertionLoading: boolean
 }) {
   const appContext = useContext(AppContext);
   const apiClient = new ApiClient(appContext);
@@ -43,9 +48,30 @@ export default function Retrieve(props: {
     props.changeAct(year, act);
   };
 
-  const [flashItems, setFlashItems] = useState([]);
+  const [
+    selectedOption,
+    setSelectedOption
+  ] = useState(null);
+
+  const [options, setOptions] = useState<SelectProps.Option[]>([]);
+
+  useEffect(() => {
+    let processedAmendmentList = Array.from(new Set(props.amendmentList.map((amendment) => amendment.amending_act))).map((amending_act) => ({
+      label: 'As amended by: ' + amending_act,
+      value: amending_act,
+    })).reverse()
+
+    if (processedAmendmentList.length > 0) {
+      setOptions(processedAmendmentList)
+      setSelectedOption(processedAmendmentList[0])
+      props.applyAmendment(processedAmendmentList[0].value.split(" ").slice(-1)[0], processedAmendmentList[0].value.split(" ")[1])
+    }
+
+  }, [props.amendmentList]);
+
+
   const { notifications, addNotification } = useNotifications();
-  
+
   function showFlashMessage(
     type: "info" | "success" | "warning" | "error",
     content: React.ReactNode,
@@ -66,7 +92,7 @@ export default function Retrieve(props: {
     feedbackMessage: string;
     setFeedbackMessage: Dispatch<SetStateAction<string>>;
   }
-  
+
   const FeedbackModal = memo(({
     visible,
     onClose,
@@ -85,7 +111,7 @@ export default function Retrieve(props: {
       { label: "Browse", value: "Browse" },
       { label: "Other", value: "Other" },
     ];
-  
+
     const topicOptions: SelectProps.Option[] = [
       { label: "View", value: "View" },
       { label: "Functionality", value: "Functionality" },
@@ -93,7 +119,7 @@ export default function Retrieve(props: {
       { label: "Bug", value: "Bug" },
       { label: "Other", value: "Other" },
     ];
-  
+
     return (
       <Modal
         visible={visible}
@@ -145,13 +171,13 @@ export default function Retrieve(props: {
       </Modal>
     );
   });
-  
+
   // For the FeedbackTab
   interface FeedbackTabProps {
     onFeedbackDown: () => void;
     onFeedbackUp: () => void;
   }
-  
+
   const FeedbackTab = memo(({ onFeedbackDown, onFeedbackUp }: FeedbackTabProps) => {
     return (
       <div style={{
@@ -166,7 +192,7 @@ export default function Retrieve(props: {
           justifyContent: "center",
           alignItems: "center",
           textAlign: "center",
-          
+
         }}>
           <Box>
             <h4 style={{ fontFamily: "Calibri, sans-serif", fontWeight: "500", fontSize: 15 }}>
@@ -183,13 +209,13 @@ export default function Retrieve(props: {
       </div>
     );
   });
-  
+
   // The main container that ties the tab and modal together
   interface FeedbackContainerProps {
     apiClient?: ApiClient; // or remove if not needed
     showFlashMessage: (type: "info" | "success" | "warning" | "error", content: React.ReactNode) => void;
   }
-  
+
   const FeedbackContainer: React.FC<FeedbackContainerProps> = ({
     apiClient,
     showFlashMessage
@@ -198,19 +224,19 @@ export default function Retrieve(props: {
     const [feedbackType, setFeedbackType] = useState("");
     const [feedbackTopic, setFeedbackTopic] = useState("");
     const [feedbackMessage, setFeedbackMessage] = useState("");
-  
+
     const handleFeedbackUp = () => {
       // Positive feedback
       showFlashMessage("success", "Thank you for your valuable feedback!");
       // Could log it to your server if needed
       console.log("Positive feedback received");
     };
-  
+
     const handleFeedbackDown = () => {
       // Show the extended feedback modal
       setFeedbackModalVisible(true);
     };
-  
+
     const submitFeedback = async () => {
       if (!feedbackType || !feedbackTopic || !feedbackMessage) {
         showFlashMessage("error", "Please fill out all fields before submitting feedback.");
@@ -233,7 +259,7 @@ export default function Retrieve(props: {
         setFeedbackMessage("");
       }
     };
-  
+
     return (
       <>
         <FeedbackTab onFeedbackUp={handleFeedbackUp} onFeedbackDown={handleFeedbackDown} />
@@ -254,23 +280,53 @@ export default function Retrieve(props: {
 
 
   return (
-    <div>      
-      <div className={styles.chat_container}>
-        {actLoading ? (
-          <Box textAlign="center">
-            <StatusIndicator type="loading">Loading law</StatusIndicator>
-          </Box>
-        ) : (
-          // Now the actText may contain HTML tags due to diff highlighting
-          <Box textAlign="center">
-            <TextContent>
-              <div dangerouslySetInnerHTML={{ __html: props.actText }} />
-            </TextContent>
-          </Box>
+    <div>
+      <ColumnLayout columns={props.showConformed ? 2 : 1} variant="text-grid">
+        <div className={styles.chat_container}>
+          {actLoading ? (
+            <Box textAlign="center">
+              <StatusIndicator type="loading">Loading law</StatusIndicator>
+            </Box>
+          ) : (
+            <Box textAlign="center">
+              <TextContent>
+                {props.originalActText}
+              </TextContent>
+            </Box>
+          )}
+        </div>
+        {props.showConformed && (
+          <SpaceBetween size="m">
+            <Select
+              selectedOption={selectedOption}
+              onChange={({ detail }) => {
+                setSelectedOption(detail.selectedOption)
+                props.applyAmendment(detail.selectedOption.value.split(" ").slice(-1)[0], detail.selectedOption.value.split(" ")[1])
+              }}
+              options={options}
+              placeholder="Select an amendment"
+              empty="No amendments available"
+            />
+            <div className={styles.chat_container}>
+              <Box textAlign="center">
+                {props.insertionLoading ? (
+                  <StatusIndicator type="loading">Loading amended copy</StatusIndicator>
+                ) : (
+                <TextContent>
+                  <div dangerouslySetInnerHTML={{ __html: props.actText }} />
+                </TextContent>
+                )}
+              </Box>
+              <Box textAlign="center" margin={{ top: "m" }}>
+                {`This conformed version of Chapter ${props.chapter} of the Acts of ${props.year} was partially generated using Generative AI. Please verify all information.`}
+              </Box>
+            </div>
+          </SpaceBetween>
         )}
-      </div>          
+
+      </ColumnLayout>
       <div style={{ marginTop: "1rem", textAlign: "center" }}>
-        <FeedbackContainer 
+        <FeedbackContainer
           apiClient={apiClient}
           showFlashMessage={showFlashMessage}
         />
@@ -302,7 +358,7 @@ export default function Retrieve(props: {
               </Button>
             </div>
           </SpaceBetween>
-        </div>        
+        </div>
       </div>
     </div>
   );

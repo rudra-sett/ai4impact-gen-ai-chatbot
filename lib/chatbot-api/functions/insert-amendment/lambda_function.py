@@ -23,9 +23,12 @@ def get_act_text(year, chapter):
 
 def get_act_text_from_key(key):
     s3 = boto3.client('s3')
-    response = s3.get_object(Bucket=bucket_name, Key=key)
-    body = response['Body'].read().decode('utf-8', 'ignore')
-    return body
+    try:
+        response = s3.get_object(Bucket=bucket_name, Key=key)
+        body = response['Body'].read().decode('utf-8', 'ignore')
+        return body
+    except Exception as e:
+        return "Could not find the requested Act."
 
 def number_to_words(num):
     units = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
@@ -56,9 +59,19 @@ def lambda_handler(event, context):
     amending_year = data['amend_year']
     amending_chapter = data['amend_chapter']
     overwrite = 'overwrite' in data
+    use_cached = 'use_cached' in data
     if overwrite:
         print("Overwrite requested")
     use_key = 'use_key' in data and data['use_key']
+
+    # handle new functionality where client is requesting an existing versioned copy based
+    # on an original chapter and year and a known amending chapter and year
+    if use_cached:
+        key = f"versioned/acts/{amended_year}/chapter-{amended_chapter}-version-{amending_year}-{amending_chapter}.txt"
+        return {
+            "statusCode" : 200,
+            "body" : json.dumps(get_act_text_from_key(key))
+        }
         
     if 'client_text' in data:
         # sometimes we may pass the original text as 'client_text'

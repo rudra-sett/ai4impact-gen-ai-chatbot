@@ -84,7 +84,8 @@ export class ActsClient {
         chapter: chapter,
         amend_year: amendingYear,
         amend_chapter: amendingChapter,
-        client_text: clientText        
+        // client_text: clientText  
+        use_cached: true      
       }),
     });
     if (!response.ok) {

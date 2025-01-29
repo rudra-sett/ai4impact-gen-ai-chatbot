@@ -2,7 +2,7 @@ import BaseAppLayout from "../../../components/base-app-layout";
 import Chat from "../../../components/chatbot/chat";
 
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { Header, Cards, CollectionPreferences, Box, Tabs, Button, StatusIndicator } from "@cloudscape-design/components";
+import { Header, Cards, CollectionPreferences, Box, Tabs, Button, StatusIndicator, SpaceBetween } from "@cloudscape-design/components";
 import { useState, useContext, useEffect } from "react";
 import Search from "../../../components/search/search";
 import useOnFollow from "../../../common/hooks/use-on-follow";
@@ -29,14 +29,13 @@ export default function Playground() {
   const [originalActText, setOriginalActText] = useState("Enter a chapter and year to retrieve an Act");
 
   const [selectedItems, setSelectedItems] = useState([]);
-  const [currentPageIndex, setCurrentPageIndex] = useState(1);
 
   const [loading, setLoading] = useState(false);
   const [insertionLoading, setInsertionLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState("retrieve");
-  
-  const [activeHref, setActiveHref] = useState(window.location.pathname);
+
+  const [showConformed, setShowConformed] = useState(false);
 
   const dmp = new diff_match_patch();
 
@@ -117,6 +116,12 @@ export default function Playground() {
   return (
     <BaseAppLayout
       info={
+        <SpaceBetween size="s">
+          <Box textAlign="center" margin={{ top: "xxxl" }}>
+            <Button onClick={() => {setShowConformed(!showConformed)}}>
+              {showConformed ? "Hide Conformed Version" : "Show Conformed Version"}
+            </Button>
+          </Box>
         <Cards
           onSelectionChange={({ detail }) => setSelectedItems(detail.selectedItems)}
           selectedItems={selectedItems}
@@ -136,24 +141,7 @@ export default function Playground() {
                 id: "description",
                 header: "Amendment Description",
                 content: (item) => item.amendment_description,
-              },
-              {
-                id: "tools",
-                header: "Amendment Tools",
-                content: (item) =>
-                  <Button
-                    loading={insertionLoading}
-                    variant="primary"
-                    onClick={() => {
-                      const parts = item.amending_act.split(" ");
-                      const amendingYear = parts.slice(-1)[0];
-                      const amendingChapter = parts[1];
-                      applyAmendment(amendingYear, amendingChapter);
-                    }}
-                  >
-                    Insert Amendment
-                  </Button>,
-              },
+              }              
             ],
           }}
           cardsPerRow={[{ cards: 1 }, { minWidth: 500, cards: 2 }]}
@@ -197,6 +185,7 @@ export default function Playground() {
             />
           }
         />
+        </SpaceBetween>
       }
       toolsWidth={300}
       content={
@@ -209,6 +198,7 @@ export default function Playground() {
                 id: "retrieve",
                 content: (
                   <Retrieve
+                    originalActText={originalActText}
                     actText={actText}
                     setActText={setActText}
                     sessionId={sessionId}
@@ -217,6 +207,10 @@ export default function Playground() {
                     chapter={chapter}
                     year={year}
                     changeAct={changeActPage}
+                    showConformed={showConformed}
+                    amendmentList={amendments}
+                    applyAmendment={applyAmendment}
+                    insertionLoading={insertionLoading}
                   />
                 )
               },
